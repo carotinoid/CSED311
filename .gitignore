@@ -1,4 +1,6 @@
 obj_dir/
-.stamp.verilate
+.stamp.verilate*
 *.vcd
 result
+result.log
+todolist.txt
