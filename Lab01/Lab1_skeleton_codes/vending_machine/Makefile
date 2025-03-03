@@ -28,7 +28,7 @@ waveform.vcd: ./obj_dir/V$(MODULE)
 .stamp.verilate: $(MODULE).v tb_$(MODULE).cpp
 	@echo
 	@echo "### VERILATING ###"
-	verilator -Wall --Wno-DECLFILENAME --Wno-BLKSEQ --Wno-WIDTH --Wno-EOFNEWLINE --Wno-UNUSEDSIGNAL --Wno-UNUSEDPARAM --trace --timing --x-assign unique --x-initial unique -cc vending_machine.v --exe tb_vending_machine.cpp
+	verilator --Wno-DECLFILENAME --Wno-BLKSEQ --Wno-WIDTH --Wno-EOFNEWLINE --Wno-UNUSEDSIGNAL --Wno-UNUSEDPARAM --trace --timing --x-assign unique --x-initial unique -cc vending_machine.v --exe custom_tb_vending_machine.cpp
 	@touch .stamp.verilate
 
 .PHONY:lint
