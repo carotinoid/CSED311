@@ -1,6 +1,6 @@
 `include "vending_machine_def.v"
 
-module change_state(clk,reset_n,timeset,timeout);
+module change_time(clk,reset_n,timeset,timeout);
 	input clk;
 	input reset_n;
     input timeset;
@@ -8,8 +8,9 @@ module change_state(clk,reset_n,timeset,timeout);
     reg [`kTotalBits : 0] wait_time;
     assign timeout = (wait_time == 0);
 	
+
 	always @(posedge clk) begin
-		if (!reset_n) wait_time <= 0;
+		if (!reset_n) wait_time <= -1;
 		else if (timeset) wait_time <= `kWaitTime;
         else if (wait_time > 0) wait_time <= wait_time - 1;
         else wait_time <= 0;

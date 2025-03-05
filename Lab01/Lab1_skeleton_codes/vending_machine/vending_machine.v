@@ -50,44 +50,34 @@ module vending_machine (
 	wire [`kTotalBits-1:0] current_total;
 	
 	// Next internal states. You may add your own net variables.
-	wire [`kTotalBits-1:0] current_total_nxt;
+	wire [`kTotalBits-1:0] next_total;
 
 	
 	// Variables. You may add more your own net variables.
-	wire [`kTotalBits-1:0] input_total, output_total, return_total;
-	wire [31:0] wait_time;
 
 
 	// This module interface, structure, and given a number of modules are not mandatory but recommended.
 	// However, Implementations that use modules are mandatory.
 		
-  	check_time_and_coin check_time_and_coin_module(.i_input_coin(i_input_coin),
-  									.i_select_item(i_select_item),
-									.clk(clk),
-									.reset_n(reset_n),
-									.wait_time(wait_time),
-									.o_return_coin(o_return_coin));
+	calc_total calc_total(
+						.current_total(current_total),
+						.i_input_coin(i_input_coin),
+						.coin_value(coin_value),
+						.next_total(next_total));
 
-	calculate_current_state calculate_current_state_module(.i_input_coin(i_input_coin),
-						
-									.i_select_item(i_select_item),
-										.item_price(item_price),
-										.coin_value(coin_value),
-										.current_total(current_total),
-										.input_total(input_total),
-										.output_total(output_total),
-										.return_total(return_total),
-										.current_total_nxt(current_total_nxt),
-										.wait_time(wait_time),
-										.o_return_coin(o_return_coin),
-										.o_available_item(o_available_item),
-										.o_output_item(o_output_item));
-	
-  	change_state change_state_module(
+	change_state_and_output change_state_and_output(
 						.clk(clk),
 						.reset_n(reset_n),
-						.current_total_nxt(current_total_nxt),
-						.current_total(current_total));
+						.next_total(next_total),
+						.i_select_item(i_select_item),
+						.i_input_coin(i_input_coin),
+						.i_trigger_return(i_trigger_return),
+						.o_output_item(o_output_item),
+						.o_return_coin(o_return_coin),
+						.o_available_item(o_available_item),
+						.current_total(current_total),
+						.item_price(item_price),
+						.coin_value(coin_value));
 
 
 endmodule
