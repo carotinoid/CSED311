@@ -15,7 +15,7 @@ module vending_machine (
 	i_trigger_return,			// change-return is triggered 
 
 	o_available_item,			// Sign of the item availability
-	o_output_item,			// Sign of the item withdrawal
+	o_output_item,				// Sign of the item withdrawal
 	o_return_coin				// Sign of the coin return
 );
 
