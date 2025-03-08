@@ -8,7 +8,7 @@ using namespace std;
 #include "Vvending_machine.h"
 #include "Vvending_machine___024root.h"
 #define D_WIDTH 16
-#define MAX_SIM_TIME 400
+#define MAX_SIM_TIME 200
 vluint64_t sim_time = 0;
 int o_available_item_expected = 0;
 int current = 0;
@@ -36,7 +36,6 @@ int main(int argc, char** argv, char** env) {
 
 
     while (sim_time < MAX_SIM_TIME) {
-        printf("Sim Time: %d\n", sim_time);
         dut->clk ^= 1;
         dut->eval();
         m_trace->dump(sim_time);
@@ -414,15 +413,9 @@ int main(int argc, char** argv, char** env) {
                 break;
             case 115:
                 dut->i_input_coin = 0;
-                break;
-            case 116:
-                dut->i_input_coin = 0b101;
-                break;
-            case 117:
-                dut->i_input_coin = 0;
                 dut->i_trigger_return = 1;
                 break;
-            case 119:
+            case 121:
                 dut->i_trigger_return = 0;
                 if (dut->o_return_coin == 0b111) {
                     success++;
@@ -430,36 +423,36 @@ int main(int argc, char** argv, char** env) {
                 } else {
                     printf("FAILED : return coin: %d, expected 0b111 \n", dut->o_return_coin);
                 }
-                break;
-            case 121:
-                dut->i_trigger_return = 1;
-                break;  
-            case 123:
-                dut->i_trigger_return = 0;
-                if (dut->o_return_coin == 0b101) {
-                    success++;
-                    printf("PASSED : return coin: %d, expected 0b101 \n", dut->o_return_coin);
-                } else {
-                    printf("FAILED : return coin: %d, expected 0b101 \n", dut->o_return_coin);
-                }
-                break; 
-            case 125:
-                dut->i_input_coin = 0b111;
-                break;
-            case 127:
-                dut->i_input_coin = 0b000;
-                break;
-            case 129:
-                dut->i_input_coin = 0b011;
-                break;
-            case 131:
-                dut->i_input_coin = 0b000;
-                break;
+                break;       
 
 
 /////////////////////////////////select item test////////////////////////////////////////////////////////
            
 
+            case 122:
+            printf("\n Select item test sim_time: %d\n", sim_time);
+                dut->reset_n = 0;
+                break;
+            case 123:
+                dut->reset_n = 1;
+
+            case 124:
+                dut->i_input_coin = 0b111;
+                break;
+            case 125:
+                dut->i_input_coin = 0;
+                break;
+            case 126:
+                dut->i_select_item = 0b0110;
+                break;
+            case 127:
+                dut->i_select_item = 0b000;
+                if (dut->o_output_item == 0b0110) {
+                    success++;
+                    printf("PASSED : output item: %s, expected 0b0110 \n", to_binary(dut->o_output_item));
+                } else {
+                    printf("FAILED : output item: %, expected 0b0110 \n", to_binary(dut->o_output_item));
+                }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
         }
     }
