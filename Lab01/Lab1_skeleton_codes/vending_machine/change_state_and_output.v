@@ -35,10 +35,11 @@ module change_state_and_output(clk, reset_n, next_total, output_item, return_coi
 		flag_return = 0;
 	end
 
-	always @(posedge clk, negedge reset_n) begin
+	always @(posedge clk) begin
 		if (!reset_n) begin
 			current_total <= 0;
 			o_output_item <= 0;
+			o_return_coin <= 0;
 			flag_return <= 0;
 		end
 		else begin

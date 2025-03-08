@@ -9,7 +9,7 @@ module change_time(clk,reset_n,timeset,timeout);
     assign timeout = (wait_time == 0);
 	
 
-	always @(posedge clk, negedge reset_n) begin
+	always @(posedge clk) begin
 		if (!reset_n) wait_time <= -1;
 		else if (timeset) wait_time <= `kWaitTime;
         else if (wait_time > 0) wait_time <= wait_time - 1;
