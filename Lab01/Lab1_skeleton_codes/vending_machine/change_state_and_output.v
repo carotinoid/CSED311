@@ -1,64 +1,75 @@
 `include "vending_machine_def.v"
 
-module change_state_and_output(clk, reset_n, next_total, i_select_item, i_input_coin, i_trigger_return, o_output_item, o_return_coin, o_available_item, current_total, item_price, coin_value);
+module change_state_and_output(clk, reset_n, next_total, output_item, return_coin, return_total, flag_inserted, flag_output_item, i_trigger_return, item_price,
+ 							   o_output_item, o_return_coin, o_available_item, current_total);
 
 	input clk;
 	input reset_n;
 	input [`kTotalBits-1:0] next_total;
-	input [`kNumItems-1:0] i_select_item;
-	input [`kNumCoins-1:0] i_input_coin;
+
+	input [`kNumItems-1:0] output_item;
+    input [`kNumCoins-1:0] return_coin; 
+    input [`kTotalBits-1:0] return_total;
+
+	input flag_inserted;
+	input flag_output_item;
+
 	input i_trigger_return;
+	
 	input [31:0] item_price [`kNumItems-1:0];
-	input [31:0] coin_value [`kNumCoins-1:0];
+
 	output reg [`kNumCoins-1:0] o_return_coin;
 	output reg [`kNumItems-1:0] o_output_item;
 	output reg [`kNumItems-1:0] o_available_item;
+
 	output reg [`kTotalBits-1:0] current_total;
 	integer i;
-	integer j;
 
-	wire [`kTotalBits-1:0] required_money;
-	assign required_money = (i_select_item[0] * item_price[0]
-							+ i_select_item[1] * item_price[1]
-							+ i_select_item[2] * item_price[2]
-							+ i_select_item[3] * item_price[3]);
-	wire check_return;
-	assign check_return = timeout | i_trigger_return;
 	wire timeout;
+
 	wire timeset;
-	assign timeset = i_input_coin | 
-					((i_select_item != 3'b000) & (current_total >= required_money));
+	assign timeset = flag_inserted || flag_output_item;
+	
+	reg flag_return;
+	initial begin
+		flag_return = 0;
+	end
 
-
-	always @(posedge clk) begin
+	always @(posedge clk, negedge reset_n) begin
 		if (!reset_n) begin
-			current_total = 0;
-			o_return_coin = 0;
+			current_total <= 0;
+			o_output_item <= 0;
+			flag_return <= 0;
 		end
 		else begin
-			current_total = next_total;
-			o_output_item <= 4'b0000;
-			if(i_select_item && current_total >= required_money) begin
-				o_output_item <= i_select_item;
-				current_total = current_total - required_money;
+			current_total <= next_total;
+			o_output_item <= output_item;
+
+			if(timeout) begin
+				o_return_coin <= return_coin;
+				current_total <= return_total;
 			end
-			if(check_return) begin
-				o_return_coin = o_return_coin;
-				for(j = 2; j >= 0; j--) begin
-					if(current_total >= coin_value[j]) begin
-						o_return_coin = o_return_coin | (3'b001 << j);
-						current_total = current_total - coin_value[j];
+			else begin
+				if(i_trigger_return) begin
+					o_return_coin <= return_coin;
+					flag_return <= 1;
+				end
+				else begin
+					o_return_coin <= 0;
+					if(flag_return) begin
+						current_total <= return_total;
+						flag_return <= 0;
 					end
 				end
 			end
-			else o_return_coin = 0;
 		end
 	end
 
 	always @(*) begin
 		o_available_item = 4'b0000;
 		for(i = 0; i < 4; i++) begin
-			if(current_total >= item_price[i]) o_available_item = o_available_item | (4'b0001 << i);
+			if(current_total >= item_price[i]) 
+				o_available_item = o_available_item | (4'b0001 << i);
 		end
 	end
 

@@ -52,6 +52,12 @@ module vending_machine (
 	// Next internal states. You may add your own net variables.
 	wire [`kTotalBits-1:0] next_total;
 
+    wire [`kNumItems-1:0] output_item;
+	wire [`kNumCoins-1:0] return_coin;
+	wire [`kTotalBits-1:0] return_total;
+
+	wire flag_inserted;
+	wire flag_output_item;
 	
 	// Variables. You may add more your own net variables.
 
@@ -62,22 +68,34 @@ module vending_machine (
 	calc_total calc_total(
 						.current_total(current_total),
 						.i_input_coin(i_input_coin),
+						.i_select_item(i_select_item),
 						.coin_value(coin_value),
-						.next_total(next_total));
-
+						.item_price(item_price),
+						.next_total(next_total),
+						.output_item(output_item),
+						.return_coin(return_coin),
+						.return_total(return_total),
+						.flag_inserted(flag_inserted),
+						.flag_output_item(flag_output_item));
+	
+	// module change_state_and_output(clk, reset_n, next_total, output_item, return_coin, flag_inserted, flag_output_item, i_trigger_return, item_price,
+ 							//    o_output_item, o_return_coin, o_available_item, current_total);
 	change_state_and_output change_state_and_output(
 						.clk(clk),
 						.reset_n(reset_n),
 						.next_total(next_total),
-						.i_select_item(i_select_item),
-						.i_input_coin(i_input_coin),
+						.output_item(output_item),
+						.return_coin(return_coin),
+						.return_total(return_total),
+						.flag_inserted(flag_inserted),
+						.flag_output_item(flag_output_item),
 						.i_trigger_return(i_trigger_return),
+						.item_price(item_price),
+
 						.o_output_item(o_output_item),
 						.o_return_coin(o_return_coin),
 						.o_available_item(o_available_item),
-						.current_total(current_total),
-						.item_price(item_price),
-						.coin_value(coin_value));
+						.current_total(current_total));
 
 
 endmodule
