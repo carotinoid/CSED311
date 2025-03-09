@@ -36,8 +36,6 @@ module calc_total(current_total, i_input_coin, i_select_item, coin_value, item_p
                 + coin_value[1] * i_input_coin[1] 
                 + coin_value[2] * i_input_coin[2];
 
-        // $display("::", current_total,",", i_input_coin, ",", next_total);
-        
 		if(next_total >= required_money) begin
 			output_item = i_select_item;
 			next_total = next_total - required_money;
