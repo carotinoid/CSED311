@@ -1,1 +1,0 @@
-[GPT](https://chatgpt.com/share/67c8596f-e918-800a-86d7-e9d963b48e6b)
