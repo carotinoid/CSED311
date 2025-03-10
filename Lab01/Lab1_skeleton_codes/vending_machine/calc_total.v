@@ -4,13 +4,11 @@ module calc_total(current_total, i_input_coin, i_select_item, coin_value, item_p
                   next_total, output_item, return_coin, return_total, flag_inserted, flag_output_item);
 
     input [`kTotalBits-1:0] current_total;
-	
     input [`kNumItems-1:0] i_select_item;
     input [`kNumCoins-1:0] i_input_coin;
-    
     input [31:0] coin_value [`kNumCoins-1:0];
 	input [31:0] item_price [`kNumItems-1:0];
-    
+
     output reg [`kTotalBits-1:0] next_total; 
 
 	wire [`kTotalBits-1:0] required_money;
@@ -21,13 +19,10 @@ module calc_total(current_total, i_input_coin, i_select_item, coin_value, item_p
 
     output reg [`kNumItems-1:0] output_item;
 	output reg [`kNumCoins-1:0] return_coin;
- 
 	output flag_inserted = (i_input_coin != `kNumCoins'b0);
 	output flag_output_item = ((i_select_item != `kNumItems'b0) && (current_total >= required_money));    
-
-    integer i;
-    
     output reg [`kTotalBits-1:0] return_total;
+    integer i;
 
 	always @(*) begin
 		output_item = `kNumItems'b0;

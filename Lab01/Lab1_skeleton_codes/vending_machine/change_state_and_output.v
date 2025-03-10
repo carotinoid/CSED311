@@ -6,31 +6,27 @@ module change_state_and_output(clk, reset_n, next_total, output_item, return_coi
 	input clk;
 	input reset_n;
 	input [`kTotalBits-1:0] next_total;
-
 	input [`kNumItems-1:0] output_item;
     input [`kNumCoins-1:0] return_coin; 
     input [`kTotalBits-1:0] return_total;
-
 	input flag_inserted;
 	input flag_output_item;
-
 	input i_trigger_return;
-	
 	input [31:0] item_price [`kNumItems-1:0];
 
 	output reg [`kNumCoins-1:0] o_return_coin;
 	output reg [`kNumItems-1:0] o_output_item;
 	output reg [`kNumItems-1:0] o_available_item;
-
 	output reg [`kTotalBits-1:0] current_total;
+
 	integer i;
 
 	wire timeout;
-
 	wire timeset;
 	assign timeset = flag_inserted || flag_output_item;
 	
 	reg flag_return;
+	
 	initial begin
 		flag_return = 0;
 	end

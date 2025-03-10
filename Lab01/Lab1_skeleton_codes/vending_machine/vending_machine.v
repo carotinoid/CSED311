@@ -54,17 +54,14 @@ module vending_machine (
 
     wire [`kNumItems-1:0] output_item;
 	wire [`kNumCoins-1:0] return_coin;
+	
+	// Variables. You may add more your own net variables.
 	wire [`kTotalBits-1:0] return_total;
 
 	wire flag_inserted;
 	wire flag_output_item;
-	
-	// Variables. You may add more your own net variables.
 
 
-	// This module interface, structure, and given a number of modules are not mandatory but recommended.
-	// However, Implementations that use modules are mandatory.
-		
 	calc_total calc_total(
 						.current_total(current_total),
 						.i_input_coin(i_input_coin),
@@ -78,8 +75,6 @@ module vending_machine (
 						.flag_inserted(flag_inserted),
 						.flag_output_item(flag_output_item));
 	
-	// module change_state_and_output(clk, reset_n, next_total, output_item, return_coin, flag_inserted, flag_output_item, i_trigger_return, item_price,
- 							//    o_output_item, o_return_coin, o_available_item, current_total);
 	change_state_and_output change_state_and_output(
 						.clk(clk),
 						.reset_n(reset_n),
