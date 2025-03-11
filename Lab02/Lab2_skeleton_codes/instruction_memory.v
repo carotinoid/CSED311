@@ -31,6 +31,7 @@ module instruction_memory #(parameter MEM_DEPTH = 1024) (input reset,
       // Provide path of the file including instructions with binary format
       $readmemh("/path/to/binary_format/file", mem);
     end
+    dout <= mem[imem_addr];
   end
 
 endmodule

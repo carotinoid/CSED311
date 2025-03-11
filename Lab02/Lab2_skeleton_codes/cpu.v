@@ -50,16 +50,16 @@ module cpu(input reset,                     // positive reset signal
 
   // ---------- Control Unit ----------
   control_unit ctrl_unit (
-    .part_of_inst(),  // input
-    .is_jal(),        // output
-    .is_jalr(),       // output
-    .branch(),        // output
-    .mem_read(),      // output
-    .mem_to_reg(),    // output
-    .mem_write(),     // output
-    .alu_src(),       // output
-    .write_enable(),  // output
-    .pc_to_reg(),     // output
+    .Instr(),  // input
+    .JAL(),        // output
+    .JALR(),       // output
+    .Branch(),        // output
+    .MemRead(),      // output
+    .MemtoReg(),    // output
+    .MemWrite(),     // output
+    .ALUSrc(),       // output
+    .RegWrite(),  // output
+    .PCtoReg(),     // output
     .is_ecall()       // output (ecall inst)
   );
 
