@@ -18,80 +18,121 @@ module cpu(input reset,                     // positive reset signal
 
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
+  wire [31:0] imm_addr;
   pc pc(
-    .reset(),       // input (Use reset to initialize PC. Initial value must be 0)
-    .clk(),         // input
+    .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
+    .clk(clk),         // input
     .next_pc(),     // input
-    .current_pc()   // output
+    .current_pc(imm_addr)   // output
   );
   
   // ---------- Instruction Memory ----------
+
   instruction_memory imem(
-    .reset(),   // input
-    .clk(),     // input
-    .addr(),    // input
-    .dout()     // output
+    .reset(reset),   // input
+    .clk(clk),     // input
+    .addr(imm_addr),    // input
+    .dout(instr)     // output
   );
 
   // ---------- Register File ----------
+  wire [31:0] rs1_val;
+  wire [31:0] rs2_val;
+  wire [31:0] reg_mux_out;
+  mux reg_mux(
+    .in0(data_mux_out),
+    .in1(),
+    .sel(ctrl_PCtoReg),
+    .out(reg_mux_out)
+  );
+
   register_file reg_file (
-    .reset (),        // input
-    .clk (),          // input
-    .rs1 (),          // input
-    .rs2 (),          // input
-    .rd (),           // input
-    .rd_din (),       // input
-    .write_enable (), // input
-    .rs1_dout (),     // output
-    .rs2_dout (),     // output
+    .reset (reset),        // input
+    .clk (clk),          // input
+    .rs1 (instr[19:15]),          // input
+    .rs2 (instr[24:20]),          // input
+    .rd (instr[11:7]),           // input
+    .rd_din (reg_mux_out),       // input
+    .write_enable (ctrl_RegWrite), // input
+    .rs1_dout (rs1_val),     // output
+    .rs2_dout (rs2_val),     // output
     .print_reg (print_reg)  //DO NOT TOUCH THIS
   );
 
 
   // ---------- Control Unit ----------
+  wire ctrl_JAL, ctrl_JALR, ctrl_Branch;
+  wire ctrl_MemRead, ctrl_MemtoReg, ctrl_MemWrite;
+  wire ctrl_ALUSrc, ctrl_RegWrite, ctrl_PCtoReg, ctrl_is_ecall;
   control_unit ctrl_unit (
-    .Instr(),  // input
-    .JAL(),        // output
-    .JALR(),       // output
-    .Branch(),        // output
-    .MemRead(),      // output
-    .MemtoReg(),    // output
-    .MemWrite(),     // output
-    .ALUSrc(),       // output
-    .RegWrite(),  // output
-    .PCtoReg(),     // output
-    .is_ecall()       // output (ecall inst)
+    .Instr(instr[6:0]),  // input
+    .JAL(ctrl_JAL),        // output
+    .JALR(ctrl_JALR),       // output
+    .Branch(ctrl_Branch),        // output
+    .MemRead(ctrl_MemRead),      // output
+    .MemtoReg(ctrl_MemtoReg),    // output
+    .MemWrite(ctrl_MemWrite),     // output
+    .ALUSrc(ctrl_ALUSrc),       // output
+    .RegWrite(ctrl_RegWrite),  // output
+    .PCtoReg(ctrl_PCtoReg),     // output
+    .is_ecall(ctrl_is_ecall)       // output (ecall inst)
   );
 
   // ---------- Immediate Generator ----------
+  wire [31:0] imm_gen_out;
   immediate_generator imm_gen(
-    .part_of_inst(),  // input
-    .imm_gen_out()    // output
+    .Instr(instr),  // input
+    .imm_gen_out(imm_gen_out)    // output
   );
 
   // ---------- ALU Control Unit ----------
+  wire [7:0] alu_op;
   alu_control_unit alu_ctrl_unit (
-    .part_of_inst(),  // input
-    .alu_op()         // output
+    .Instr30(instr[30]),  // input
+    .Instr14_12(instr[14:12]), // input
+    .Instr6_0(instr[6:0]),    // input
+    .alu_op(alu_op)         // output
   );
 
   // ---------- ALU ----------
+  wire [31:0] alu_mux_out;
+  mux alu_mux(
+    .in0(rs2_val),  // input
+    .in1(imm_gen_out), // input
+    .sel(ctrl_ALUSrc), // input
+    .out(alu_mux_out) // output
+  );
+
+  wire bcond;
+  wire [31:0] alu_out;
+
+  wire [31:0] alu_in_1 = rs1_val;
+  wire [31:0] alu_in_2 = alu_mux_out;
   alu alu (
-    .alu_op(),      // input
-    .alu_in_1(),    // input  
-    .alu_in_2(),    // input
-    .alu_result(),  // output
-    .alu_bcond()    // output
+    .alu_op(alu_op),      // input
+    .alu_in_1(alu_in_1),    // input  
+    .alu_in_2(alu_in_2),    // input
+    .alu_result(alu_out),  // output
+    .alu_bcond(bcond)    // output
   );
 
   // ---------- Data Memory ----------
+  wire [31:0] mem_out;
   data_memory dmem(
-    .reset (),      // input
-    .clk (),        // input
-    .addr (),       // input
-    .din (),        // input
-    .mem_read (),   // input
-    .mem_write (),  // input
-    .dout ()        // output
+    .reset (reset),      // input
+    .clk (clk),        // input
+    .addr (alu_out),       // input
+    .din (rs2_val),        // input
+    .mem_read (ctrl_MemRead),   // input
+    .mem_write (ctrl_MemWrite),  // input
+    .dout (mem_out)        // output
+  );
+
+  wire [31:0] data_mux_out;
+  mux data_mux(
+    .in0(alu_out),
+    .in1(mem_out),
+    .sel(ctrl_MemtoReg),
+    .out(data_mux_out)
   );
 endmodule
