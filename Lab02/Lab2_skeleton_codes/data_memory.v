@@ -23,6 +23,12 @@ module data_memory #(parameter MEM_DEPTH = 16384) (input reset,
   // (use dmem_addr to access memory)
   assign dout = mem_read ? mem[dmem_addr] : 0;
 
+  always @(posedge clk) begin
+    if(mem_write) begin
+      mem[dmem_addr] = din;
+    end
+  end
+
   // Initialize data memory (do not touch)
   always @(posedge clk) begin
     if (reset) begin
@@ -32,9 +38,6 @@ module data_memory #(parameter MEM_DEPTH = 16384) (input reset,
         mem[i] = 32'b0;
         /* verilator lint_on BLKSEQ */
         // DO NOT TOUCH COMMENT ABOVE
-    end
-    if(mem_write) begin
-      mem[dmem_addr] = din;
     end
   end
 endmodule

@@ -6,3 +6,7 @@
 `define AND 8'b00000101
 `define SRL 8'b00000110
 `define SRA 8'b00000111
+`define BEQ 8'b00001000 
+`define BNE 8'b00001001
+`define BLT 8'b00001010
+`define BGE 8'b00001011
