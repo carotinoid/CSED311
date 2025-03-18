@@ -25,7 +25,7 @@ module data_memory #(parameter MEM_DEPTH = 16384) (input reset,
 
   always @(posedge clk) begin
     if(mem_write) begin
-      mem[dmem_addr] = din;
+      mem[dmem_addr] <= din;
     end
   end
 

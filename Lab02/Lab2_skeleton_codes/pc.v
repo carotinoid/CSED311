@@ -4,7 +4,8 @@ module pc (input reset,
            output reg [31:0] current_pc);
 
 always @(posedge clk) begin
-    current_pc <= next_pc;
+    if(reset) current_pc <= 0;
+    else current_pc <= next_pc;
 end
 
 endmodule

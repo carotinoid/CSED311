@@ -18,12 +18,45 @@ module cpu(input reset,                     // positive reset signal
 
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
-  wire [31:0] imm_addr;
+
+  wire [31:0] next_instr_addr_1;
+  adder pc_adder1(
+    .in0(instr_addr),
+    .in1(4),
+    .out(next_instr_addr_1)
+  );
+
+  wire [31:0] next_instr_addr_2;
+  adder pc_adder2(
+    .in0(instr_addr),
+    .in1(imm_gen_out),
+    .out(next_instr_addr_2)
+  );
+
+  wire PCSrc1 = ctrl_JAL || (ctrl_Branch && bcond);
+  wire [31:0] next_instr_addr_3;
+  mux pc_mux1(
+    .in0(next_instr_addr_1),
+    .in1(next_instr_addr_2),
+    .sel(PCSrc1),
+    .out(next_instr_addr_3)
+  );
+
+  wire PCSrc2 = ctrl_JALR;
+  wire [31:0] next_instr_addr;
+  mux pc_mux_2(
+    .in0(next_instr_addr_3),
+    .in1(alu_out),
+    .sel(PCSrc2),
+    .out(next_instr_addr)
+  );
+
+  wire [31:0] instr_addr;
   pc pc(
     .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
     .clk(clk),         // input
-    .next_pc(),     // input
-    .current_pc(imm_addr)   // output
+    .next_pc(next_instr_addr),     // input
+    .current_pc(instr_addr)   // output
   );
   
   // ---------- Instruction Memory ----------
@@ -32,7 +65,7 @@ module cpu(input reset,                     // positive reset signal
   instruction_memory imem(
     .reset(reset),   // input
     .clk(clk),     // input
-    .addr(imm_addr),    // input
+    .addr(instr_addr),    // input
     .dout(instr)     // output
   );
 
@@ -42,7 +75,7 @@ module cpu(input reset,                     // positive reset signal
   wire [31:0] reg_mux_out;
   mux reg_mux(
     .in0(data_mux_out),
-    .in1(),
+    .in1(next_instr_addr_1),
     .sel(ctrl_PCtoReg),
     .out(reg_mux_out)
   );
@@ -78,6 +111,8 @@ module cpu(input reset,                     // positive reset signal
     .PCtoReg(ctrl_PCtoReg),     // output
     .is_ecall(ctrl_is_ecall)       // output (ecall inst)
   );
+
+  assign is_halted = ctrl_is_ecall;
 
   // ---------- Immediate Generator ----------
   wire [31:0] imm_gen_out;
