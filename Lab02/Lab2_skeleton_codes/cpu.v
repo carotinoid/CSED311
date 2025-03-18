@@ -28,6 +28,7 @@ module cpu(input reset,                     // positive reset signal
   
   // ---------- Instruction Memory ----------
 
+  wire [31:0] instr;
   instruction_memory imem(
     .reset(reset),   // input
     .clk(clk),     // input
@@ -80,17 +81,17 @@ module cpu(input reset,                     // positive reset signal
 
   // ---------- Immediate Generator ----------
   wire [31:0] imm_gen_out;
-  immediate_generator imm_gen(
+  imm_gen imm_gen(
     .Instr(instr),  // input
     .imm_gen_out(imm_gen_out)    // output
   );
 
   // ---------- ALU Control Unit ----------
   wire [7:0] alu_op;
-  alu_control_unit alu_ctrl_unit (
+  alu_ctrl_unit alu_ctrl_unit (
     .Instr30(instr[30]),  // input
-    .Instr14_12(instr[14:12]), // input
-    .Instr6_0(instr[6:0]),    // input
+    .funct3(instr[14:12]), // input
+    .opcode(instr[6:0]),    // input
     .alu_op(alu_op)         // output
   );
 
