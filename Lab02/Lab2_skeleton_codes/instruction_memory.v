@@ -31,7 +31,7 @@ module instruction_memory #(parameter MEM_DEPTH = 1024) (input reset,
         // DO NOT TOUCH COMMENT ABOVE
 
       // Provide path of the file including instructions with binary format
-      $readmemh("/home/remote/Lecture/CSED311/Lab02/Lab2_skeleton_codes/student_tb/non-controlflow_mem.txt", mem);
+      $readmemh("student_tb/hash_ripes.txt", mem);
     end
   end
 

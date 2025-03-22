@@ -88,9 +88,11 @@ module cpu(input reset,                     // positive reset signal
     .rd (instr[11:7]),           // input
     .rd_din (reg_mux_out),       // input
     .write_enable (ctrl_RegWrite), // input
+    .is_ecall (ctrl_is_ecall),
     .rs1_dout (rs1_val),     // output
     .rs2_dout (rs2_val),     // output
-    .print_reg (print_reg)  //DO NOT TOUCH THIS
+    .print_reg (print_reg),  //DO NOT TOUCH THIS
+    .is_halted (is_halted)
   );
 
 
@@ -111,8 +113,6 @@ module cpu(input reset,                     // positive reset signal
     .PCtoReg(ctrl_PCtoReg),     // output
     .is_ecall(ctrl_is_ecall)       // output (ecall inst)
   );
-
-  assign is_halted = ctrl_is_ecall;
 
   // ---------- Immediate Generator ----------
   wire [31:0] imm_gen_out;
