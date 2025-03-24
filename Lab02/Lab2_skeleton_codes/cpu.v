@@ -1,13 +1,3 @@
-// Submit this file with other files you created.
-// Do not touch port declarations of the module 'cpu'.
-
-// Guidelines
-// 1. It is highly recommened to `define opcodes and something useful.
-// 2. You can modify the module.
-// (e.g., port declarations, remove modules, define new modules, ...)
-// 3. You might need to describe combinational logics to drive them into the module (e.g., mux, and, or, ...)
-// 4. `include files if required
-
 module cpu(input reset,                     // positive reset signal
            input clk,                       // clock signal
            output is_halted,                // Whehther to finish simulation
@@ -41,7 +31,6 @@ module cpu(input reset,                     // positive reset signal
   /***** Register declarations *****/
 
   // ---------- Update program counter ----------
-  // PC must be updated on the rising edge (positive edge) of the clock.
 
   adder pc_adder1(
     .in0(instr_addr),             // input
@@ -105,7 +94,7 @@ module cpu(input reset,                     // positive reset signal
     .is_ecall (ctrl_is_ecall),    // input
     .rs1_dout (rs1_val),          // output
     .rs2_dout (rs2_val),          // output
-    .print_reg (print_reg),       //DO NOT TOUCH THIS
+    .print_reg (print_reg),       // output // DO NOT TOUCH THIS
     .is_halted (is_halted)        // output
   );
 
