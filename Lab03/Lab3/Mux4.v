@@ -1,4 +1,4 @@
-module mux4(input [31:0] in0, 
+module Mux4(input [31:0] in0, 
            input [31:0] in1, 
            input [31:0] in2,
            input [31:0] in3,

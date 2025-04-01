@@ -23,70 +23,11 @@ module cpu(input reset,       // positive reset signal
   reg [31:0] ALUOut; // ALU output register
   // Do not modify and use registers declared above.
 
-  // ---------- Update program counter ----------
-  // PC must be updated on the rising edge (positive edge) of the clock.
-  wire PCWrite = ctrl_PCWrite || (PCWireNotCond && !ALUBcond);
-  wire current_pc;
-  PC pc(
-    .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
-    .clk(clk),         // input
-    .PCWrite(PCWrite),
-    .next_pc(next_pc),     // input
-    .current_pc(currnet_pc)   // output
-  );
-  
-  wire [31:0] mem_address;
-  mux2 AddressMUX(
-    .in0(current_pc),
-    .in1(ALUOut),
-    .sel(ctrl_IorD),
-    .out(mem_address)
-  );
-
-  // ---------- Memory ----------
-  wire [31:0] MemOut;
-  Memory memory(
-    .reset(reset),        // input
-    .clk(clk),          // input
-    .addr(mem_address),         // input
-    .din(B),          // input
-    .mem_read(ctrl_MemRead),     // input
-    .mem_write(ctrl_memWrite),    // input
-    .dout(MemOut)          // output
-  );
-
-  wire [31:0] Instr;
-  InstructionRegister IR(
-    .in(MemOut),
-    .IRWrite(ctrl_IRWrite),
-    .out(Instr)
-  );
-
-  wire [31:0] Mem_Data;
-  DataRegister DR(
-    .in(MemOut),
-    .out(MEM_Data)
-  );
-
-  // ---------- Register File ----------
-  RegisterFile reg_file(
-    .reset(reset),        // input
-    .clk(clk),          // input
-    .rs1(),          // input
-    .rs2(),          // input
-    .rd(),           // input
-    .rd_din(),       // input
-    .write_enable(),    // input
-    .rs1_dout(),     // output
-    .rs2_dout(),      // output
-    .print_reg()     // output (TO PRINT REGISTER VALUES IN TESTBENCH)
-  );
-
-
+  // ---------- Control Unit ----------
   wire ctrl_PCWriteNotCond, ctrl_PCWrite, ctrl_IorD, ctrl_MemRead, ctrl_MemWrite, ctrl_MemtoReg, ctrl_IRWrite, ctrl_PCSource, ctrl_ALUOp, ctrl_ALUSrcA, ctrl_RegWrite, ctrl_is_ecall;
   wire [1:0] ctrl_ALUSrcB;
   wire [6:0] instr;
-  // ---------- Control Unit ----------
+  
   ControlUnit ctrl_unit(
     .reset(reset),
     .clk(clk),
@@ -105,6 +46,74 @@ module cpu(input reset,       // positive reset signal
     .RegWrite(ctrl_RegWrite),     // output
     .is_ecall(ctrl_is_ecall)      // output (ecall inst)
   );
+  // ---------- Update program counter ----------
+  // PC must be updated on the rising edge (positive edge) of the clock.
+  wire PCWrite = ctrl_PCWrite || (PCWireNotCond && !ALUBcond);
+  wire current_pc;
+  PC pc(
+    .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
+    .clk(clk),         // input
+    .PCWrite(PCWrite),
+    .next_pc(next_pc),     // input
+    .current_pc(currnet_pc)   // output
+  );
+  
+  wire [31:0] addr_mux_out;
+  Mux2 addr_mux(
+    .in0(current_pc),
+    .in1(ALUOut),
+    .sel(ctrl_IorD),
+    .out(addr_mux_out)
+  );
+
+  // ---------- Memory ----------
+  wire [31:0] mem_out;
+  Memory memory(
+    .reset(reset),        // input
+    .clk(clk),          // input
+    .addr(addr_mux_out),         // input
+    .din(B),          // input
+    .mem_read(ctrl_MemRead),     // input
+    .mem_write(ctrl_memWrite),    // input
+    .dout(mem_out)          // output
+  );
+
+  wire [31:0] Instr;
+  InstructionRegister IR(
+    .in(mem_out),
+    .IRWrite(ctrl_IRWrite),
+    .out(Instr)
+  );
+
+  wire [31:0] Mem_Data;
+  DataRegister DR(
+    .in(mem_out),
+    .out(Data)
+  );
+
+  // ---------- Register File ----------
+
+  Mux2 reg_mux(
+    .in0(ALUOut),
+    .in1(Data),
+    .sel(MemtoReg),
+    .out(reg_mux_out)
+  );
+
+  RegisterFile reg_file(
+    .reset(reset),        // input
+    .clk(clk),          // input
+    .rs1(Instr[19:15]),          // input
+    .rs2(Instr[24:20]),          // input
+    .rd(Instr[11:7]),           // input
+    .rd_din(reg_mux_out),       // input
+    .write_enable(ctrl_RegWrite),    // input
+    .rs1_dout(),     // output
+    .rs2_dout(),      // output
+    .print_reg()     // output (TO PRINT REGISTER VALUES IN TESTBENCH)
+  );
+
+
 
   // ---------- Immediate Generator ----------
   ImmediateGenerator imm_gen(
