@@ -25,17 +25,53 @@ module cpu(input reset,       // positive reset signal
 
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
+  wire PCWrite = ctrl_PCWrite || (PCWireNotCond && !ALUBcond);
+  wire current_pc;
   PC pc(
-    .reset(),       // input (Use reset to initialize PC. Initial value must be 0)
-    .clk(),         // input
-    .next_pc(),     // input
-    .current_pc()   // output
+    .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
+    .clk(clk),         // input
+    .PCWrite(PCWrite),
+    .next_pc(next_pc),     // input
+    .current_pc(currnet_pc)   // output
+  );
+  
+  wire [31:0] mem_address;
+  mux2 AddressMUX(
+    .in0(current_pc),
+    .in1(ALUOut),
+    .sel(ctrl_IorD),
+    .out(mem_address)
+  );
+
+  // ---------- Memory ----------
+  wire [31:0] MemOut;
+  Memory memory(
+    .reset(reset),        // input
+    .clk(clk),          // input
+    .addr(mem_address),         // input
+    .din(B),          // input
+    .mem_read(ctrl_MemRead),     // input
+    .mem_write(ctrl_memWrite),    // input
+    .dout(MemOut)          // output
+  );
+
+  wire [31:0] Instr;
+  InstructionRegister IR(
+    .in(MemOut),
+    .IRWrite(ctrl_IRWrite),
+    .out(Instr)
+  );
+
+  wire [31:0] Mem_Data;
+  DataRegister DR(
+    .in(MemOut),
+    .out(MEM_Data)
   );
 
   // ---------- Register File ----------
   RegisterFile reg_file(
-    .reset(),        // input
-    .clk(),          // input
+    .reset(reset),        // input
+    .clk(clk),          // input
     .rs1(),          // input
     .rs2(),          // input
     .rd(),           // input
@@ -46,16 +82,6 @@ module cpu(input reset,       // positive reset signal
     .print_reg()     // output (TO PRINT REGISTER VALUES IN TESTBENCH)
   );
 
-  // ---------- Memory ----------
-  Memory memory(
-    .reset(),        // input
-    .clk(),          // input
-    .addr(),         // input
-    .din(),          // input
-    .mem_read(),     // input
-    .mem_write(),    // input
-    .dout()          // output
-  );
 
   wire ctrl_PCWriteNotCond, ctrl_PCWrite, ctrl_IorD, ctrl_MemRead, ctrl_MemWrite, ctrl_MemtoReg, ctrl_IRWrite, ctrl_PCSource, ctrl_ALUOp, ctrl_ALUSrcA, ctrl_RegWrite, ctrl_is_ecall;
   wire [1:0] ctrl_ALUSrcB;
