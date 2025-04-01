@@ -57,19 +57,27 @@ module cpu(input reset,       // positive reset signal
     .dout()          // output
   );
 
+  wire ctrl_PCWriteNotCond, ctrl_PCWrite, ctrl_IorD, ctrl_MemRead, ctrl_MemWrite, ctrl_MemtoReg, ctrl_IRWrite, ctrl_PCSource, ctrl_ALUOp, ctrl_ALUSrcA, ctrl_RegWrite, ctrl_is_ecall;
+  wire [1:0] ctrl_ALUSrcB;
+  wire [6:0] instr;
   // ---------- Control Unit ----------
   ControlUnit ctrl_unit(
-    .part_of_inst(),  // input
-    .is_jal(),        // output
-    .is_jalr(),       // output
-    .branch(),        // output
-    .mem_read(),      // output
-    .mem_to_reg(),    // output
-    .mem_write(),     // output
-    .alu_src(),       // output
-    .write_enable(),     // output
-    .pc_to_reg(),     // output
-    .is_ecall()       // output (ecall inst)
+    .reset(reset),
+    .clk(clk),
+    .Instr(instr[6:0]),           // input
+    .PCWriteNotCond(ctrl_PCWriteNotCond), // output
+    .PCWrite(ctrl_PCWrite),       // output
+    .IorD(ctrl_IorD),             // output
+    .MemRead(ctrl_MemRead),       // output
+    .MemWrite(ctrl_MemWrite),     // output
+    .MemtoReg(ctrl_MemtoReg),     // output
+    .IRWrite(ctrl_IRWrite),       // output
+    .PCSource(ctrl_PCSource),     // output
+    .ALUOp(ctrl_ALUOp),           // output
+    .ALUSrcB(ctrl_ALUSrcB),       // output
+    .ALUSrcA(ctrl_ALUSrcA),       // output
+    .RegWrite(ctrl_RegWrite),     // output
+    .is_ecall(ctrl_is_ecall)      // output (ecall inst)
   );
 
   // ---------- Immediate Generator ----------
