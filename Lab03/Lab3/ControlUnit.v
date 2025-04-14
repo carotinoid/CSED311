@@ -21,6 +21,10 @@ module ControlUnit(
 
     reg [2:0] state;
 
+    initial begin
+        state = 1;
+    end
+
     always @(posedge clk) begin
         if(reset) begin
             state <= 1;
@@ -48,16 +52,16 @@ module ControlUnit(
                     if(state == 3) state <= 1;
                     else state <= state + 1;
                 end
-                default: state <= state;
+                default: state <= state+1;
             endcase
         end
-end
+    end
 
-    wire to_IR_from_MEM_PC    = (state == 1);                                 // 1
-    wire to_A_from_RF_RS1     = (state == 2);                                 // 2
-    wire to_B_from_RF_RS2     = (state == 2);                                 // 2
-    wire to_ALUOut_from_PCp4  = (state == 2);                                 // 2
-    wire to_ALUOut_from_ApB   = (state == 3 && Instr == `ARITHMETIC);         // R3
+    wire to_IR_from_MEM_PC    = (state == 1);                                   // 1
+    wire to_A_from_RF_RS1     = (state == 2);                                   // 2
+    wire to_B_from_RF_RS2     = (state == 2);                                   // 2
+    wire to_ALUOut_from_PCp4  = (state == 2);                                   // 2
+    wire to_ALUOut_from_ApB   = (state == 3 && Instr == `ARITHMETIC);           // R3
     wire to_RF_rd_from_ALUOut = ((state == 4 && Instr == `ARITHMETIC)
                                 || (state == 3 && Instr == `JAL)
                                 || (state == 3 && Instr == `JALR)
@@ -66,17 +70,17 @@ end
                                 || (state == 5 && Instr == `LOAD)
                                 || (state == 4 && Instr == `STORE)
                                 || (state == 4 && Instr == `ARITHMETIC_IMM)
-                                || (state == 3 && Instr == `ECALL));   // R4, LD5, SD4, I4
+                                || (state == 3 && Instr == `ECALL));            // R4, LD5, SD4, I4
     wire to_ALUOut_from_Apimm = ((state == 3 && Instr == `LOAD)
                                 || (state == 3 && Instr == `STORE)
                                 || (state == 3 && Instr == `ARITHMETIC_IMM));   // LD3, SD3, I3
-    wire to_MDR_from_MEM_ALUOut = (state == 4 && Instr == `LOAD);             // LD4
-    wire to_RF_rd_from_MDR    = (state == 5 && Instr == `LOAD);               // LD5
-    wire to_MEM_ALUOut_from_B = (state == 4 && Instr == `STORE);              // SD4
-    wire to_PC_from_ALUOut    = (state == 3 && Instr == `BRANCH);   // B3
+    wire to_MDR_from_MEM_ALUOut = (state == 4 && Instr == `LOAD);               // LD4
+    wire to_RF_rd_from_MDR    = (state == 5 && Instr == `LOAD);                 // LD5
+    wire to_MEM_ALUOut_from_B = (state == 4 && Instr == `STORE);                // SD4
+    wire to_PC_from_ALUOut    = (state == 3 && Instr == `BRANCH);               // B3
     wire to_PC_from_PCpimm    = ((state == 4 && Instr == `BRANCH)
                                 || (state == 3 && Instr == `JAL));              // B4, JAL3
-    wire to_PC_from_Apimm     = (state == 3 && Instr == `JALR);               // JALR3
+    wire to_PC_from_Apimm     = (state == 3 && Instr == `JALR);                 // JALR3
 
     assign is_ecall = (Instr == `ECALL);
     assign ALUOp = !(state == 3 && (Instr == `ARITHMETIC || Instr == `ARITHMETIC_IMM || Instr == `BRANCH));

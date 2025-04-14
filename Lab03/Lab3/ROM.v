@@ -34,7 +34,7 @@ assign MemRead          = to_IR_from_MEM_PC || to_MDR_from_MEM_ALUOut;
 assign MemWrite         = to_MEM_ALUOut_from_B;
 assign MemtoReg         = to_RF_rd_from_MDR;
 assign IRWrite          = to_IR_from_MEM_PC;
-assign PCSource         = to_PC_from_ALUOut; // <--?
+assign PCSource         = to_PC_from_ALUOut;
 assign ALUSrcB          = (to_ALUOut_from_ApB || to_PC_from_ALUOut ? 0 : 
                           (to_ALUOut_from_PCp4 || to_PC_from_PCp4) ? 1 :
                           (to_ALUOut_from_Apimm || to_PC_from_PCpimm || to_PC_from_Apimm) ? 2 : 3);
