@@ -44,6 +44,10 @@ module ControlUnit(
                     else if(state == 3 && !ALUBcond) state <= 1;
                     else state <= state + 1;
                 end
+                `ECALL: begin
+                    if(state == 3) state <= 1;
+                    else state <= state + 1;
+                end
                 default: state <= state;
             endcase
         end
@@ -61,7 +65,8 @@ end
     wire to_PC_from_PCp4      = ((state == 4 && Instr == `ARITHMETIC)
                                 || (state == 5 && Instr == `LOAD)
                                 || (state == 4 && Instr == `STORE)
-                                || (state == 4 && Instr == `ARITHMETIC_IMM));   // R4, LD5, SD4, I4
+                                || (state == 4 && Instr == `ARITHMETIC_IMM)
+                                || (state == 3 && Instr == `ECALL));   // R4, LD5, SD4, I4
     wire to_ALUOut_from_Apimm = ((state == 3 && Instr == `LOAD)
                                 || (state == 3 && Instr == `STORE)
                                 || (state == 3 && Instr == `ARITHMETIC_IMM));   // LD3, SD3, I3
@@ -74,7 +79,7 @@ end
     wire to_PC_from_Apimm     = (state == 3 && Instr == `JALR);               // JALR3
 
     assign is_ecall = (Instr == `ECALL);
-    assign ALUOp = !(state == 3 && (Instr == `ARITHMETIC || Instr == `ARITHMETIC_IMM));
+    assign ALUOp = !(state == 3 && (Instr == `ARITHMETIC || Instr == `ARITHMETIC_IMM || Instr == `BRANCH));
 
     ROM ROM(
         .to_IR_from_MEM_PC(to_IR_from_MEM_PC),
