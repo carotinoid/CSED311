@@ -2,8 +2,8 @@ module PC(
     input reset,
     input clk,
     input PCWrite,
-    input next_pc,
-    output reg current_pc
+    input [31:0] next_pc,
+    output reg [31:0] current_pc
 );
 
 always @(posedge clk) begin
