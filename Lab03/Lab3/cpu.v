@@ -48,7 +48,7 @@ module cpu(input reset,       // positive reset signal
   );
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
-  wire PCWrite = ctrl_PCWrite || (PCWireNotCond && !ALUBcond);
+  wire PCWrite = ctrl_PCWrite || (ctrl_PCWriteNotCond && !ALUBcond);
   wire [31:0] current_pc;
   PC pc(
     .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
@@ -74,7 +74,7 @@ module cpu(input reset,       // positive reset signal
     .addr(addr_mux_out),         // input
     .din(B),          // input
     .mem_read(ctrl_MemRead),     // input
-    .mem_write(ctrl_memWrite),    // input
+    .mem_write(ctrl_MemWrite),    // input
     .dout(mem_out)          // output
   );
 
@@ -91,19 +91,20 @@ module cpu(input reset,       // positive reset signal
 
   // ---------- Register File ----------
 
+  wire [31:0] reg_mux_out;
   Mux2 reg_mux(
     .in0(ALUOut),
-    .in1(Data),
-    .sel(MemtoReg),
+    .in1(MDR),
+    .sel(ctrl_MemtoReg),
     .out(reg_mux_out)
   );
 
   RegisterFile reg_file(
     .reset(reset),        // input
     .clk(clk),          // input
-    .rs1(Instr[19:15]),          // input
-    .rs2(Instr[24:20]),          // input
-    .rd(Instr[11:7]),           // input
+    .rs1(IR[19:15]),          // input
+    .rs2(IR[24:20]),          // input
+    .rd(IR[11:7]),           // input
     .rd_din(reg_mux_out),       // input
     .write_enable(ctrl_RegWrite),    // input
     .rs1_dout(A),     // output
@@ -124,7 +125,10 @@ module cpu(input reset,       // positive reset signal
 
   wire [7:0] alu_op;
   ALUControlUnit alu_ctrl_unit(
-    .part_of_inst(IR[6:0]),  // input
+    .Instr30(IR[30]),       // input
+    .funct3(IR[14:12]),      // input
+    .opcode(IR[6:0]),       // input
+    .NoInst(ctrl_ALUOp),   // input
     .alu_op(alu_op)         // output
   );
 
@@ -148,6 +152,7 @@ module cpu(input reset,       // positive reset signal
   );
 
   wire [31:0] alu_result;
+  wire ALUBcond;
   ALU alu(
     .alu_op(alu_op),      // input
     .alu_in_1(alu_in_1),    // input  
@@ -164,7 +169,7 @@ module cpu(input reset,       // positive reset signal
   Mux2 next_pc_mux(
     .in0(alu_result),
     .in1(ALUOut),
-    .sel(PCSource),
+    .sel(ctrl_PCSource),
     .out(next_pc)
   );
 endmodule
