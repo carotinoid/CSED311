@@ -38,7 +38,7 @@ assign PCSource         = to_PC_from_ALUOut; // <--?
 assign ALUSrcB          = (to_ALUOut_from_ApB ? 0 : 
                           (to_ALUOut_from_PCp4 || to_PC_from_PCp4) ? 1 :
                           (to_ALUOut_from_Apimm || to_PC_from_PCpimm || to_PC_from_Apimm) ? 2 : 3);
-assign ALUSrcA          = (to_ALUOut_from_PCp4 || to_PC_from_PCp4 || to_PC_from_PCpimm);
+assign ALUSrcA          = !(to_ALUOut_from_PCp4 || to_PC_from_PCp4 || to_PC_from_PCpimm);
 assign RegWrite         = to_RF_rd_from_ALUOut || to_RF_rd_from_MDR;
 
 endmodule

@@ -19,27 +19,33 @@ module ControlUnit(
     output is_ecall
 );
 
-    reg [3:0] state;
+    reg [2:0] state;
 
     always @(posedge clk) begin
         if(reset) begin
-            state <= 0;
+            state <= 1;
         end
         else begin
             case(Instr)
-                `JAL, `JALR: if(state == 3) state <= 0;
-                `ARITHMETIC, `ARITHMETIC_IMM, `STORE: if(state == 4) state <= 0;
-                `LOAD: if(state == 5) state <= 0;
+                `JAL, `JALR: begin
+                    if(state == 3) state <= 1;
+                    else state <= state + 1;
+                end
+                `ARITHMETIC, `ARITHMETIC_IMM, `STORE: begin
+                    if(state == 4) state <= 1;
+                    else state <= state + 1;
+                end
+                `LOAD: begin
+                    if(state == 5) state <= 1;
+                    else state <= state + 1;
+                end
                 `BRANCH: begin
-                    if(state == 4) state <= 0;
-                    else if(state == 3) begin
-                        if(!ALUBcond) state <= 0;
-                    end
+                    if(state == 4) state <= 1;
+                    else if(state == 3 && !ALUBcond) state <= 1;
                     else state <= state + 1;
                 end
                 default: state <= state;
             endcase
-            state <= state + 1;
         end
 end
 
@@ -68,7 +74,7 @@ end
     wire to_PC_from_Apimm     = (state == 3 && Instr == `JALR);               // JALR3
 
     assign is_ecall = (Instr == `ECALL);
-    assign ALUOp = state == 3 && (Instr == `ARITHMETIC || Instr == `ARITHMETIC_IMM);
+    assign ALUOp = !(state == 3 && (Instr == `ARITHMETIC || Instr == `ARITHMETIC_IMM));
 
     ROM ROM(
         .to_IR_from_MEM_PC(to_IR_from_MEM_PC),

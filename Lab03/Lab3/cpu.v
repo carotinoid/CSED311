@@ -26,12 +26,11 @@ module cpu(input reset,       // positive reset signal
   // ---------- Control Unit ----------
   wire ctrl_PCWriteNotCond, ctrl_PCWrite, ctrl_IorD, ctrl_MemRead, ctrl_MemWrite, ctrl_MemtoReg, ctrl_IRWrite, ctrl_PCSource, ctrl_ALUOp, ctrl_ALUSrcA, ctrl_RegWrite, ctrl_is_ecall;
   wire [1:0] ctrl_ALUSrcB;
-  wire [6:0] instr;
   
   ControlUnit ctrl_unit(
     .reset(reset),
     .clk(clk),
-    .Instr(instr[6:0]),           // input
+    .Instr(IR[6:0]),           // input
     .ALUBcond(ALUBcond),          // input
     .PCWriteNotCond(ctrl_PCWriteNotCond), // output
     .PCWrite(ctrl_PCWrite),       // output
@@ -80,13 +79,19 @@ module cpu(input reset,       // positive reset signal
   );
 
   always @(posedge clk) begin
-    if(ctrl_IRWrite) begin
-      IR <= mem_out;
-      MDR <= MDR;
+    if(reset) begin
+      IR <= 0;
+      MDR <= 0;
     end
     else begin
-      MDR <= mem_out;
-      IR <= IR;
+      if(ctrl_IRWrite) begin
+        IR <= mem_out;
+        MDR <= MDR;
+      end
+      else begin
+        MDR <= mem_out;
+        IR <= IR;
+      end
     end
   end
 
@@ -112,6 +117,8 @@ module cpu(input reset,       // positive reset signal
     .rs2_dout(B),      // output
     .print_reg(print_reg)     // output (TO PRINT REGISTER VALUES IN TESTBENCH)
   );
+
+  assign is_halted = ctrl_is_ecall && print_reg[17] == 10;
 
 
 
