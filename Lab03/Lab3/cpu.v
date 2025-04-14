@@ -49,13 +49,13 @@ module cpu(input reset,       // positive reset signal
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
   wire PCWrite = ctrl_PCWrite || (PCWireNotCond && !ALUBcond);
-  wire current_pc;
+  wire [31:0] current_pc;
   PC pc(
     .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
     .clk(clk),         // input
     .PCWrite(PCWrite),
     .next_pc(next_pc),     // input
-    .current_pc(currnet_pc)   // output
+    .current_pc(current_pc)   // output
   );
   
   wire [31:0] addr_mux_out;
@@ -78,18 +78,16 @@ module cpu(input reset,       // positive reset signal
     .dout(mem_out)          // output
   );
 
-  wire [31:0] Instr;
-  InstructionRegister IR(
-    .in(mem_out),
-    .IRWrite(ctrl_IRWrite),
-    .out(Instr)
-  );
-
-  wire [31:0] Mem_Data;
-  DataRegister DR(
-    .in(mem_out),
-    .out(Data)
-  );
+  always @(posedge clk) begin
+    if(ctrl_IRWrite) begin
+      IR <= mem_out;
+      MDR <= MDR;
+    end
+    else begin
+      MDR <= mem_out;
+      IR <= IR;
+    end
+  end
 
   // ---------- Register File ----------
 
@@ -108,32 +106,65 @@ module cpu(input reset,       // positive reset signal
     .rd(Instr[11:7]),           // input
     .rd_din(reg_mux_out),       // input
     .write_enable(ctrl_RegWrite),    // input
-    .rs1_dout(),     // output
-    .rs2_dout(),      // output
-    .print_reg()     // output (TO PRINT REGISTER VALUES IN TESTBENCH)
+    .rs1_dout(A),     // output
+    .rs2_dout(B),      // output
+    .print_reg(print_reg)     // output (TO PRINT REGISTER VALUES IN TESTBENCH)
   );
 
 
 
   // ---------- Immediate Generator ----------
+  wire [31:0] imm_gen_out;
   ImmediateGenerator imm_gen(
-    .part_of_inst(),  // input
-    .imm_gen_out()    // output
+    .Instr(IR),  // input
+    .imm_gen_out(imm_gen_out)    // output
   );
 
   // ---------- ALU Control Unit ----------
+
+  wire [7:0] alu_op;
   ALUControlUnit alu_ctrl_unit(
-    .part_of_inst(),  // input
-    .alu_op()         // output
+    .part_of_inst(IR[6:0]),  // input
+    .alu_op(alu_op)         // output
   );
 
   // ---------- ALU ----------
-  ALU alu(
-    .alu_op(),      // input
-    .alu_in_1(),    // input  
-    .alu_in_2(),    // input
-    .alu_result(),  // output
-    .alu_bcond()     // output
+  wire [31:0] alu_in_1;
+  Mux2 ALUMux1(
+    .in0(current_pc),
+    .in1(A),
+    .sel(ctrl_ALUSrcA),
+    .out(alu_in_1)
   );
 
+  wire [31:0] alu_in_2;
+  Mux4 ALUMux2(
+    .in0(B),
+    .in1(4),
+    .in2(imm_gen_out),
+    .in3(0),
+    .sel(ctrl_ALUSrcB),
+    .out(alu_in_2)
+  );
+
+  wire [31:0] alu_result;
+  ALU alu(
+    .alu_op(alu_op),      // input
+    .alu_in_1(alu_in_1),    // input  
+    .alu_in_2(alu_in_2),    // input
+    .alu_result(alu_result),  // output
+    .alu_bcond(ALUBcond)     // output
+  );
+
+  always @(posedge clk) begin
+    ALUOut <= alu_result;
+  end
+
+  wire [31:0] next_pc;
+  Mux2 next_pc_mux(
+    .in0(alu_result),
+    .in1(ALUOut),
+    .sel(PCSource),
+    .out(next_pc)
+  );
 endmodule

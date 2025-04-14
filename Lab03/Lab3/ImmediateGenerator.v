@@ -1,6 +1,6 @@
 `include "opcodes.v"
 
-module imm_gen (input [31:0] Instr,
+module ImmediateGenerator (input [31:0] Instr,
                 output reg [31:0] imm_gen_out);
 
 wire [6:0] op = Instr[6:0];
