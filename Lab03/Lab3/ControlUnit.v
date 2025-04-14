@@ -62,13 +62,13 @@ end
     wire to_MDR_from_MEM_ALUOut = (state == 4 && Instr == `LOAD);             // LD4
     wire to_RF_rd_from_MDR    = (state == 5 && Instr == `LOAD);               // LD5
     wire to_MEM_ALUOut_from_B = (state == 4 && Instr == `STORE);              // SD4
-    wire cond_branch = ALUBcond;                                              // B3
-    wire to_PC_from_ALUOut = (state == 3 && Instr == `BRANCH && !ALUBcond);   // B3
+    wire to_PC_from_ALUOut    = (state == 3 && Instr == `BRANCH);   // B3
     wire to_PC_from_PCpimm    = ((state == 4 && Instr == `BRANCH)
                                 || (state == 3 && Instr == `JAL));              // B4, JAL3
     wire to_PC_from_Apimm     = (state == 3 && Instr == `JALR);               // JALR3
 
     assign is_ecall = (Instr == `ECALL);
+    assign ALUOp = state == 3 && (Instr == `ARITHMETIC || Instr == `ARITHMETIC_IMM);
 
     ROM ROM(
         .to_IR_from_MEM_PC(to_IR_from_MEM_PC),
@@ -82,7 +82,6 @@ end
         .to_MDR_from_MEM_ALUOut(to_MDR_from_MEM_ALUOut),
         .to_RF_rd_from_MDR(to_RF_rd_from_MDR),
         .to_MEM_ALUOut_from_B(to_MEM_ALUOut_from_B),
-        .cond_branch(cond_branch),
         .to_PC_from_ALUOut(to_PC_from_ALUOut),
         .to_PC_from_PCpimm(to_PC_from_PCpimm),
         .to_PC_from_Apimm(to_PC_from_Apimm),
@@ -94,7 +93,6 @@ end
         .MemtoReg(MemtoReg),
         .IRWrite(IRWrite),
         .PCSource(PCSource),
-        .ALUOp(ALUOp),
         .ALUSrcB(ALUSrcB),
         .ALUSrcA(ALUSrcA),
         .RegWrite(RegWrite)

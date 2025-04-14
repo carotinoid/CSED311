@@ -32,6 +32,7 @@ module cpu(input reset,       // positive reset signal
     .reset(reset),
     .clk(clk),
     .Instr(instr[6:0]),           // input
+    .ALUBcond(ALUBcond),          // input
     .PCWriteNotCond(ctrl_PCWriteNotCond), // output
     .PCWrite(ctrl_PCWrite),       // output
     .IorD(ctrl_IorD),             // output
