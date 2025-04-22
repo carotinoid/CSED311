@@ -75,8 +75,10 @@ module cpu(input reset,       // positive reset signal
   // Update IF/ID pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
+      IF_ID_inst <= 0;
     end
     else begin
+      IF_ID_inst <= 0; // TODO: implement instruction fetch
     end
   end
 
@@ -117,8 +119,30 @@ module cpu(input reset,       // positive reset signal
   // Update ID/EX pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
+      ID_EX_alu_op <= 0;
+      ID_EX_alu_src <= 0;
+      ID_EX_mem_write <= 0;
+      ID_EX_mem_read <= 0;
+      ID_EX_mem_to_reg <= 0;
+      ID_EX_reg_write <= 0;
+      ID_EX_rs1_data <= 0;
+      ID_EX_rs2_data <= 0;
+      ID_EX_imm <= 0;
+      ID_EX_ALU_ctrl_unit_input <= 0;
+      ID_EX_rd <= 0;
     end
     else begin
+      ID_EX_alu_op <= 0; // TODO
+      ID_EX_alu_src <= 0; // TODO
+      ID_EX_mem_write <= 0; // TODO
+      ID_EX_mem_read <= 0; // TODO
+      ID_EX_mem_to_reg <= 0; // TODO
+      ID_EX_reg_write <= 0; // TODO
+      ID_EX_rs1_data <= 0; // TODO
+      ID_EX_rs2_data <= 0; // TODO
+      ID_EX_imm <= 0; // TODO
+      ID_EX_ALU_ctrl_unit_input <= 0; // TODO: implement ALU control unit
+      ID_EX_rd <= 0; // TODO: implement rd
     end
   end
 
@@ -140,8 +164,24 @@ module cpu(input reset,       // positive reset signal
   // Update EX/MEM pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
+      EX_MEM_mem_write <= 0;
+      EX_MEM_mem_read <= 0;
+      EX_MEM_is_branch <= 0;
+      EX_MEM_mem_to_reg <= 0;
+      EX_MEM_reg_write <= 0;
+      EX_MEM_alu_out <= 0;
+      EX_MEM_dmem_data <= 0;
+      EX_MEM_rd <= 0;
     end
     else begin
+      EX_MEM_mem_write <= ID_EX_mem_write;
+      EX_MEM_mem_read <= ID_EX_mem_read;
+      EX_MEM_is_branch <= 0; // TODO: implement branch
+      EX_MEM_mem_to_reg <= ID_EX_mem_to_reg;
+      EX_MEM_reg_write <= ID_EX_reg_write;
+      EX_MEM_alu_out <= 0; // TODO: implement ALU
+      EX_MEM_dmem_data <= ID_EX_rs2_data;
+      EX_MEM_rd <= ID_EX_rd;
     end
   end
 
@@ -159,8 +199,16 @@ module cpu(input reset,       // positive reset signal
   // Update MEM/WB pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
+      MEM_WB_mem_to_reg <= 0;
+      MEM_WB_reg_write <= 0;
+      MEM_WB_mem_to_reg_src_1 <= 0;
+      MEM_WB_mem_to_reg_src_2 <= 0;
     end
     else begin
+      MEM_WB_mem_to_reg <= EX_MEM_mem_to_reg;
+      MEM_WB_reg_write <= EX_MEM_reg_write;
+      MEM_WB_mem_to_reg_src_1 <= EX_MEM_alu_out;
+      MEM_WB_mem_to_reg_src_2 <= EX_MEM_dmem_data;
     end
   end
 
