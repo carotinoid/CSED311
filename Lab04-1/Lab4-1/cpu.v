@@ -19,10 +19,10 @@ module cpu(input reset,       // positive reset signal
   // 1. You might need other pipeline registers that are not described below
   // 2. You might not need registers described below
   /***** IF/ID pipeline registers *****/
-  reg IF_ID_inst;           // will be used in ID stage
+  reg [31:0] IF_ID_inst;           // will be used in ID stage
   /***** ID/EX pipeline registers *****/
   // From the control unit
-  reg ID_EX_alu_op;         // will be used in EX stage
+  reg ID_EX_ctrl_alu_op;         // will be used in EX stage
   reg ID_EX_alu_src;        // will be used in EX stage
   reg ID_EX_mem_write;      // will be used in MEM stage
   reg ID_EX_mem_read;       // will be used in MEM stage
@@ -52,43 +52,43 @@ module cpu(input reset,       // positive reset signal
   reg MEM_WB_mem_to_reg;    // will be used in WB stage
   reg MEM_WB_reg_write;     // will be used in WB stage
   // From others
-  reg MEM_WB_mem_to_reg_src_1;
-  reg MEM_WB_mem_to_reg_src_2;
+  reg [31:0] MEM_WB_mem_to_reg_src_1;
+  reg [31:0] MEM_WB_mem_to_reg_src_2;
 
   // ---------- Update program counter ----------
-  wire current_pc_plus_4;
-  wire next_pc;
-  wire PCsrc;
-  assign PCsrc = EX_MEM_is_branch & EX_MEM_bcond;
+  wire [31:0] IF_current_pc_plus_4;
+  wire [31:0] IF_next_pc;
+  wire IF_PCsrc;
+  assign IF_PCsrc = EX_MEM_is_branch & EX_MEM_bcond;
   mux PC_mux(
-    .sel(PCsrc),          // input
-    .in0(current_pc_plus_4),         // input
+    .sel(IF_PCsrc),          // input
+    .in0(IF_current_pc_plus_4),         // input
     .in1(EX_MEM_branch_addr),         // input
-    .out(next_pc)          // output
+    .out(IF_next_pc)          // output
   );
 
-  wire current_pc;
+  wire [31:0] IF_current_pc;
   // PC must be updated on the rising edge (positive edge) of the clock.
   PC pc(
     .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
     .clk(clk),         // input
-    .next_pc(next_pc),     // input
-    .current_pc(current_pc)   // output
+    .next_pc(IF_next_pc),     // input
+    .current_pc(IF_current_pc)   // output
   );
   
-  adder pc_adder(
-    .in0(current_pc),         // input
+  Adder pc_adder(
+    .in0(IF_current_pc),         // input
     .in1(4),         // input
-    .out(current_pc_plus_4)          // output
+    .out(IF_current_pc_plus_4)          // output
   );
 
-  wire instr;
+  wire [31:0] IF_instr;
   // ---------- Instruction Memory ----------
   InstMemory imem(
     .reset(reset),   // input
     .clk(clk),     // input
-    .addr(current_pc),    // input
-    .dout(instr)     // output
+    .addr(IF_current_pc),    // input
+    .dout(IF_instr)     // output
   );
 
   reg [31:0] IF_ID_PC;
@@ -100,12 +100,14 @@ module cpu(input reset,       // positive reset signal
       IF_ID_PC <= 0;
     end
     else begin
-      IF_ID_inst <= instr;
-      IF_ID_PC <= current_pc;
+      IF_ID_inst <= IF_instr;
+      IF_ID_PC <= IF_current_pc;
     end
   end
 
-  wire rd_din, rs1_dout, rs2_dout;
+  wire [31:0] WB_ID_rd_din;
+  wire [31:0] ID_rs1_dout;
+  wire [31:0] ID_rs2_dout;
   // ---------- Register File ----------
   RegisterFile reg_file (
     .reset (reset),        // input
@@ -113,40 +115,48 @@ module cpu(input reset,       // positive reset signal
     .rs1 (IF_ID_inst[19:15]),          // input
     .rs2 (IF_ID_inst[24:20]),          // input
     .rd (IF_ID_inst[11:7]),           // input
-    .rd_din (rd_din),       // input
+    .rd_din (WB_ID_rd_din),       // input
     .write_enable (MEM_WB_reg_write),    // input
-    .rs1_dout (rs1_dout),     // output
-    .rs2_dout (rs2_dout),      // output
+    .rs1_dout (ID_rs1_dout),     // output
+    .rs2_dout (ID_rs2_dout),      // output
     .print_reg(print_reg)
   );
 
-  wire ctrl_mem_read, ctrl_mem_to_reg, ctrl_mem_write, ctrl_alu_src, ctrl_write_enable, ctrl_pc_to_reg, ctrl_alu_op, ctrl_is_ecall, branch;
+  wire ID_ctrl_mem_read;
+  wire ID_ctrl_mem_to_reg;
+  wire ID_ctrl_mem_write;
+  wire ID_ctrl_alu_src;
+  wire ID_ctrl_write_enable;
+  wire ID_ctrl_pc_to_reg;
+  wire ID_ctrl_alu_op;
+  wire ID_ctrl_is_ecall;
+  wire ID_ctrl_branch;
   // ---------- Control Unit ----------
   ControlUnit ctrl_unit (
-    .part_of_inst(IF_ID_inst[6:0]),  // input
-    .mem_read(ctrl_mem_read),      // output
-    .mem_to_reg(ctrl_mem_to_reg),    // output
-    .mem_write(ctrl_mem_write),     // output
-    .alu_src(ctrl_alu_src),       // output
-    .write_enable(ctrl_write_enable),  // output 
-    .pc_to_reg(ctrl_pc_to_reg),     // output
-    .alu_op(ctrl_alu_op),        // output
-    .branch(ctrl_branch),      // output
-    .is_ecall(ctrl_is_ecall)       // output (ecall inst)
+    .Instr(IF_ID_inst[6:0]),  // input
+    .MemRead(ID_ctrl_mem_read),      // output
+    .MemtoReg(ID_ctrl_mem_to_reg),    // output
+    .MemWrite(ID_ctrl_mem_write),     // output
+    .ALUSrc(ID_ctrl_alu_src),       // output
+    .RegWrite(ID_ctrl_write_enable),  // output 
+    .PCtoReg(ID_ctrl_pc_to_reg),     // output
+    .alu_op(ID_ctrl_alu_op),        // output
+    .Branch(ID_ctrl_branch),      // output
+    .is_ecall(ID_ctrl_is_ecall)       // output (ecall inst)
   );
 
-  wire imm_out;
+  wire [31:0] ID_imm_out;
   // ---------- Immediate Generator ----------
   ImmediateGenerator imm_gen(
-    .part_of_inst(IF_ID_inst),  // input
-    .imm_gen_out(imm_out)    // output
+    .Instr(IF_ID_inst),  // input
+    .imm_gen_out(ID_imm_out)    // output
   );
 
   reg ID_EX_branch;
   // Update ID/EX pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
-      ID_EX_alu_op <= 0;
+      ID_EX_ctrl_alu_op <= 0;
       ID_EX_alu_src <= 0;
       ID_EX_mem_write <= 0;
       ID_EX_mem_read <= 0;
@@ -161,60 +171,59 @@ module cpu(input reset,       // positive reset signal
       ID_EX_PC <= 0;
     end
     else begin
-      ID_EX_alu_op <= ctrl_alu_op;
-      ID_EX_alu_src <= ctrl_alu_src;
-      ID_EX_mem_write <= ctrl_mem_write;
-      ID_EX_mem_read <= ctrl_mem_read;
-      ID_EX_mem_to_reg <= ctrl_mem_to_reg;
-      ID_EX_reg_write <= ctrl_write_enable;
-      ID_EX_rs1_data <= rs1_dout;
-      ID_EX_rs2_data <= rs2_dout;
-      ID_EX_imm <= imm_out;
+      ID_EX_ctrl_alu_op <= ID_ctrl_alu_op;
+      ID_EX_alu_src <= ID_ctrl_alu_src;
+      ID_EX_mem_write <= ID_ctrl_mem_write;
+      ID_EX_mem_read <= ID_ctrl_mem_read;
+      ID_EX_mem_to_reg <= ID_ctrl_mem_to_reg;
+      ID_EX_reg_write <= ID_ctrl_write_enable;
+      ID_EX_rs1_data <= ID_rs1_dout;
+      ID_EX_rs2_data <= ID_rs2_dout;
+      ID_EX_imm <= ID_imm_out;
       ID_EX_ALU_ctrl_unit_input <= IF_ID_inst;
       ID_EX_rd <= IF_ID_inst[11:7];
-      ID_EX_branch <= branch;
+      ID_EX_branch <= ID_ctrl_branch;
       ID_EX_PC <= IF_ID_PC;
     end
   end
 
-  wire branch_addr;
-  adder branch_adder(
+  wire [31:0] EX_branch_addr;
+  Adder branch_adder(
     .in0(ID_EX_PC),         // input
     .in1(ID_EX_imm),         // input
-    .out(branch_addr)          // output
+    .out(EX_branch_addr)          // output
   );
 
-
-
-
-  wire alu_op;
+  wire [7:0] EX_alu_op;
   // ---------- ALU Control Unit ----------
   ALUControlUnit alu_ctrl_unit (
-    .part_of_inst(ID_EX_ALU_ctrl_unit_input),  // input
-    .alu_op(alu_op)         // output
+    .instr(ID_EX_ALU_ctrl_unit_input),  // input
+    .ctrl_alu_op(ID_EX_ctrl_alu_op),
+    .alu_op(EX_alu_op)         // output
   );
 
-  wire alu_src1, alu_src2;
-  assign alu_src1 = ID_EX_rs1_data;
+  wire [31:0] EX_alu_src1 = ID_EX_rs1_data;
+  wire [31:0] EX_alu_src2;
   mux ALU_src2_mux (
     .sel(ID_EX_alu_src),          // input
     .in0(ID_EX_rs2_data),         // input
     .in1(ID_EX_imm),              // input
-    .out(alu_src2)                        // output
+    .out(EX_alu_src2)                        // output
   );
 
-  wire alu_result, alu_bcond;
+  wire [31:0] EX_alu_result;
+  wire EX_alu_bcond;
   // ---------- ALU ----------
   ALU alu (
-    .alu_op(ID_EX_alu_op),      // input
-    .alu_in_1(alu_src1),    // input  
-    .alu_in_2(alu_src2),    // input
-    .alu_result(alu_result),  // output
-    .alu_bcond(alu_bcond)     // output
+    .alu_op(EX_alu_op),      // input
+    .alu_in_1(EX_alu_src1),    // input  
+    .alu_in_2(EX_alu_src2),    // input
+    .alu_result(EX_alu_result),  // output
+    .alu_bcond(EX_alu_bcond)     // output
   );
 
   reg EX_MEM_bcond;
-  reg EX_MEM_branch_addr;
+  reg [31:0] EX_MEM_branch_addr;
   // Update EX/MEM pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
@@ -235,15 +244,15 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_is_branch <= ID_EX_branch;
       EX_MEM_mem_to_reg <= ID_EX_mem_to_reg;
       EX_MEM_reg_write <= ID_EX_reg_write;
-      EX_MEM_alu_out <= alu_result;
+      EX_MEM_alu_out <= EX_alu_result;
       EX_MEM_dmem_data <= ID_EX_rs2_data;
       EX_MEM_rd <= ID_EX_rd;
-      EX_MEM_bcond <= alu_bcond;
-      EX_MEM_branch_addr <= branch_addr;
+      EX_MEM_bcond <= EX_alu_bcond;
+      EX_MEM_branch_addr <= EX_branch_addr;
     end
   end
 
-  wire dout;
+  wire [31:0] MEM_dout;
   // ---------- Data Memory ----------
   DataMemory dmem(
     .reset (reset),      // input
@@ -252,7 +261,7 @@ module cpu(input reset,       // positive reset signal
     .din (EX_MEM_dmem_data),        // input
     .mem_read (EX_MEM_mem_read),   // input
     .mem_write (EX_MEM_mem_write),  // input
-    .dout (dout)        // output
+    .dout (MEM_dout)        // output
   );
 
   // Update MEM/WB pipeline registers here
@@ -267,7 +276,7 @@ module cpu(input reset,       // positive reset signal
       MEM_WB_mem_to_reg <= EX_MEM_mem_to_reg;
       MEM_WB_reg_write <= EX_MEM_reg_write;
       MEM_WB_mem_to_reg_src_1 <= EX_MEM_alu_out; // 0 sel
-      MEM_WB_mem_to_reg_src_2 <= dout; // 1 sel
+      MEM_WB_mem_to_reg_src_2 <= MEM_dout; // 1 sel
     end
   end
 
@@ -275,7 +284,7 @@ module cpu(input reset,       // positive reset signal
     .sel(MEM_WB_mem_to_reg),          // input
     .in0(MEM_WB_mem_to_reg_src_1),         // input
     .in1(MEM_WB_mem_to_reg_src_2),         // input
-    .out(rd_din)                        // output
+    .out(WB_ID_rd_din)                        // output
   );
   
 endmodule

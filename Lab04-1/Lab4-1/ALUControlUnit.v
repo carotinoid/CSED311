@@ -1,10 +1,13 @@
 `include "alu_op.v"
 `include "opcodes.v"
 
-module ALUControlUnit(input Instr30,
-                     input [2:0] funct3,
-                     input [6:0] opcode,
+module ALUControlUnit(input [31:0] instr,
+                     input ctrl_alu_op,
                      output reg [7:0] alu_op);
+
+    wire [6:0] opcode = instr[6:0];
+    wire [2:0] funct3 = instr[14:12];
+    wire Instr30 = instr[30];
 
     wire [6:0] funct7;
     assign funct7 = {1'b0, Instr30, 5'b00000};
