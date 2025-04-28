@@ -290,6 +290,16 @@ module cpu(input reset,       // positive reset signal
     .out(EX_alu_in2)
   );
 
+  wire [31:0] EX_alu_in3;
+  Mux4 DataforwardMem (
+    .sel(forward_b),
+    .in0(ID_EX_rs2_data),
+    .in1(WB_ID_rd_din),
+    .in2(EX_MEM_alu_out),
+    .in3(0),
+    .out(EX_alu_in3)
+  );
+
 
   wire [31:0] EX_alu_result;
   wire EX_alu_bcond;
@@ -327,7 +337,7 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_mem_to_reg <= ID_EX_mem_to_reg;
       EX_MEM_reg_write <= ID_EX_reg_write;
       EX_MEM_alu_out <= EX_alu_result;
-      EX_MEM_dmem_data <= ID_EX_rs2_data;
+      EX_MEM_dmem_data <= EX_alu_in3;
       EX_MEM_rd <= ID_EX_rd;
       EX_MEM_bcond <= EX_alu_bcond;
       EX_MEM_branch_addr <= EX_branch_addr;
