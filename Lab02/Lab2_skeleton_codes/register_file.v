@@ -16,7 +16,6 @@ module register_file(input reset,
   // Do not touch or use print_reg
   assign print_reg = rf;
 
-  // TODO
   // Asynchronously read register file
   // Synchronously write data to the register file
 

@@ -17,7 +17,6 @@ module data_memory #(parameter MEM_DEPTH = 16384) (input reset,
                   addr[1:0],
                   1'b0};
 
-  // TODO
   // Asynchrnously read data from the memory
   // Synchronously write data to the memory
   // (use dmem_addr to access memory)
