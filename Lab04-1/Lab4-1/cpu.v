@@ -154,16 +154,28 @@ module cpu(input reset,       // positive reset signal
   //   || (!(EX_MEM_rd == 17 && EX_MEM_reg_write) && MEM_WB_rd == 17 && MEM_WB_reg_write && WB_ID_rd_din == 10)
   //   || (!(EX_MEM_rd == 17 && EX_MEM_reg_write) && !(MEM_WB_rd == 17 && MEM_WB_reg_write) && print_reg[17] == 10)
   // );
-  assign ID_is_halted = 0;
+  assign ID_is_halted = ID_ctrl_is_ecall && (
+    (EX_MEM_rd == 17 && EX_MEM_reg_write && EX_MEM_alu_out == 10)
+    || (MEM_WB_rd == 17 && MEM_WB_reg_write && WB_ID_rd_din == 10)
+    || (print_reg[17] == 10)
+  ); // 이 코드는 문제가 있는 코드긴 함. 지금은 17인데 나중에 덮어씌워질 예정이었다면? 그럼 위 코드가 맞나? (TODO)
+  // assign ID_is_halted = 0;
      
   // ---------- Hazard Detection Unit ----------
   wire stall;
+  wire [6:0] opcode = IF_ID_inst[6:0];
+  `include "opcodes.v"
+  wire use_rs1 = IF_ID_inst[19:15] != 0 && ((opcode == `ARITHMETIC) || (opcode == `ARITHMETIC_IMM) || (opcode == `LOAD) || (opcode == `STORE) || (opcode == `BRANCH));
+  wire use_rs2 = IF_ID_inst[24:20] != 0 && ((opcode == `ARITHMETIC) || (opcode == `STORE) || (opcode == `BRANCH));
   HazardDetectionUnit haz_detect_unit (
     .IF_ID_rs1(IF_ID_inst[19:15]),          // input
     .IF_ID_rs2(IF_ID_inst[24:20]),          // input
-    .EX_MEM_rd(EX_MEM_rd),                  // input
+    .EX_MEM_rd(ID_EX_rd),                  // input // (TODO) EX_MEM_rd vs ID_EX_rd ??
     .ID_EX_mem_read(ID_EX_mem_read),        // input
-    .ID_is_halted(ID_is_halted),
+    .ID_ctrl_is_ecall(ID_ctrl_is_ecall),
+    .ID_EX_ctrl_is_ecall(ID_EX_ctrl_is_ecall),
+    .use_rs1(use_rs1),
+    .use_rs2(use_rs2),
     .stall(stall)                           // output
   );
 
@@ -178,6 +190,7 @@ module cpu(input reset,       // positive reset signal
   reg [4:0] ID_EX_rs1;
   reg [4:0] ID_EX_rs2;
   reg ID_EX_is_halted;
+  reg ID_EX_ctrl_is_ecall;
   // Update ID/EX pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
@@ -197,13 +210,14 @@ module cpu(input reset,       // positive reset signal
       ID_EX_rs1 <= 0;
       ID_EX_rs2 <= 0;
       ID_EX_is_halted <= 0;
+      ID_EX_ctrl_is_ecall <= 0;
     end
     else begin
-      ID_EX_ctrl_alu_op <= (stall ? 0 : ID_ctrl_alu_op);
-      ID_EX_alu_src <= (stall ? 0 : ID_ctrl_alu_src);
+      ID_EX_ctrl_alu_op <= ID_ctrl_alu_op;
+      ID_EX_alu_src <= ID_ctrl_alu_src;
       ID_EX_mem_write <= (stall ? 0 : ID_ctrl_mem_write);
-      ID_EX_mem_read <= (stall ? 0 : ID_ctrl_mem_read);
-      ID_EX_mem_to_reg <= (stall ? 0 : ID_ctrl_mem_to_reg);
+      ID_EX_mem_read <= ID_ctrl_mem_read;
+      ID_EX_mem_to_reg <= ID_ctrl_mem_to_reg;
       ID_EX_reg_write <= (stall ? 0 : ID_ctrl_write_enable);
       ID_EX_rs1_data <= ID_rs1_dout;
       ID_EX_rs2_data <= ID_rs2_dout;
@@ -215,6 +229,7 @@ module cpu(input reset,       // positive reset signal
       ID_EX_rs1 <= IF_ID_inst[19:15];
       ID_EX_rs2 <= IF_ID_inst[24:20];
       ID_EX_is_halted <= ID_is_halted;
+      ID_EX_ctrl_is_ecall <= ID_ctrl_is_ecall;
     end
   end
 
