@@ -251,15 +251,6 @@ module cpu(input reset,       // positive reset signal
     .alu_op(EX_alu_op)         // output
   );
 
-  wire [31:0] EX_alu_src1 = ID_EX_rs1_data;
-  wire [31:0] EX_alu_src2;
-  Mux2 ALU_src2_mux (
-    .sel(ID_EX_alu_src),          // input
-    .in0(ID_EX_rs2_data),         // input
-    .in1(ID_EX_imm),              // input
-    .out(EX_alu_src2)                        // output
-  );
-
   // ---------- Data Forwarding Unit ----------
   wire [1:0] forward_a;
   wire [1:0] forward_b;
@@ -280,32 +271,29 @@ module cpu(input reset,       // positive reset signal
   wire [31:0] EX_alu_in1, EX_alu_in2;
   Mux4 DataforwardA (
     .sel(forward_a),
-    .in0(EX_alu_src1),
+    .in0(ID_EX_rs1_data),
     .in1(WB_ID_rd_din),
     .in2(EX_MEM_alu_out),
     .in3(0),
     .out(EX_alu_in1)
   );
 
+  wire [31:0] EX_alu_src2;
   Mux4 DataforwardB (
-    .sel(forward_b),
-    .in0(EX_alu_src2),
-    .in1(WB_ID_rd_din),
-    .in2(EX_MEM_alu_out),
-    .in3(0),
-    .out(EX_alu_in2)
-  );
-
-  wire [31:0] EX_alu_in3;
-  Mux4 DataforwardMem (
     .sel(forward_b),
     .in0(ID_EX_rs2_data),
     .in1(WB_ID_rd_din),
     .in2(EX_MEM_alu_out),
     .in3(0),
-    .out(EX_alu_in3)
+    .out(EX_alu_src2)
   );
-
+  
+  Mux2 ALU_in2_mux(
+    .in0(EX_alu_src2),
+    .in1(ID_EX_imm),
+    .sel(ID_EX_alu_src),
+    .out(EX_alu_in2)
+  );
 
   wire [31:0] EX_alu_result;
   wire EX_alu_bcond;
@@ -343,7 +331,7 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_mem_to_reg <= ID_EX_mem_to_reg;
       EX_MEM_reg_write <= ID_EX_reg_write;
       EX_MEM_alu_out <= EX_alu_result;
-      EX_MEM_dmem_data <= EX_alu_in3;
+      EX_MEM_dmem_data <= EX_alu_src2;
       EX_MEM_rd <= ID_EX_rd;
       EX_MEM_bcond <= EX_alu_bcond;
       EX_MEM_branch_addr <= EX_branch_addr;
