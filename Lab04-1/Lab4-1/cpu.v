@@ -73,7 +73,7 @@ module cpu(input reset,       // positive reset signal
     .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
     .clk(clk),         // input
     .next_pc(IF_next_pc),     // input
-    .stall(stall),
+    .PC_Write(PC_Write),
     .current_pc(IF_current_pc)   // output
   );
   
@@ -101,20 +101,30 @@ module cpu(input reset,       // positive reset signal
       IF_ID_PC <= 0;
     end
     else begin
-      IF_ID_inst <= (stall ? IF_ID_inst : IF_instr);
-      IF_ID_PC <= (stall ? IF_ID_PC : IF_current_pc);
+      if(IF_ID_Write) begin
+        IF_ID_inst <= IF_instr;
+        IF_ID_PC <= IF_current_pc;
+      end
+      else begin
+        IF_ID_inst <= IF_ID_inst;
+        IF_ID_PC <= IF_ID_PC;
+      end
     end
   end
+
+  wire [4:0] ID_rs1 = (ID_ctrl_is_ecall == 0 ? IF_ID_inst[19:15] : 17);
+  wire [4:0] ID_rs2 = IF_ID_inst[24:20];
 
   wire [31:0] WB_ID_rd_din;
   wire [31:0] ID_rs1_dout;
   wire [31:0] ID_rs2_dout;
+
   // ---------- Register File ----------
   RegisterFile reg_file (
     .reset (reset),        // input
     .clk (clk),          // input
-    .rs1 (IF_ID_inst[19:15]),          // input
-    .rs2 (IF_ID_inst[24:20]),          // input
+    .rs1 (ID_rs1),          // input
+    .rs2 (ID_rs2),          // input
     .rd (MEM_WB_rd),           // input
     .rd_din (WB_ID_rd_din),       // input
     .write_enable (MEM_WB_reg_write),    // input
@@ -154,29 +164,21 @@ module cpu(input reset,       // positive reset signal
   //   || (!(EX_MEM_rd == 17 && EX_MEM_reg_write) && MEM_WB_rd == 17 && MEM_WB_reg_write && WB_ID_rd_din == 10)
   //   || (!(EX_MEM_rd == 17 && EX_MEM_reg_write) && !(MEM_WB_rd == 17 && MEM_WB_reg_write) && print_reg[17] == 10)
   // );
-  assign ID_is_halted = ID_ctrl_is_ecall && (
-    (EX_MEM_rd == 17 && EX_MEM_reg_write && EX_MEM_alu_out == 10)
-    || (MEM_WB_rd == 17 && MEM_WB_reg_write && WB_ID_rd_din == 10)
-    || (print_reg[17] == 10)
-  ); // 이 코드는 문제가 있는 코드긴 함. 지금은 17인데 나중에 덮어씌워질 예정이었다면? 그럼 위 코드가 맞나? (TODO)
+  assign ID_is_halted = ID_ctrl_is_ecall && ((forward_ecall == 0 ? ID_rs1_dout : EX_MEM_alu_out) == 10);
   // assign ID_is_halted = 0;
      
   // ---------- Hazard Detection Unit ----------
-  wire stall;
-  wire [6:0] opcode = IF_ID_inst[6:0];
-  `include "opcodes.v"
-  wire use_rs1 = IF_ID_inst[19:15] != 0 && ((opcode == `ARITHMETIC) || (opcode == `ARITHMETIC_IMM) || (opcode == `LOAD) || (opcode == `STORE) || (opcode == `BRANCH));
-  wire use_rs2 = IF_ID_inst[24:20] != 0 && ((opcode == `ARITHMETIC) || (opcode == `STORE) || (opcode == `BRANCH));
-  HazardDetectionUnit haz_detect_unit (
-    .IF_ID_rs1(IF_ID_inst[19:15]),          // input
-    .IF_ID_rs2(IF_ID_inst[24:20]),          // input
+  wire PC_Write, IF_ID_Write, ID_CtrlUnitMux_sel;
+  HazardDetectionUnit haz_detect_unit(
+    .opcode(IF_ID_inst[6:0]),
+    .ID_rs1(ID_rs1),          // input
+    .ID_rs2(ID_rs2),          // input
     .EX_MEM_rd(ID_EX_rd),                  // input // (TODO) EX_MEM_rd vs ID_EX_rd ??
     .ID_EX_mem_read(ID_EX_mem_read),        // input
     .ID_ctrl_is_ecall(ID_ctrl_is_ecall),
-    .ID_EX_ctrl_is_ecall(ID_EX_ctrl_is_ecall),
-    .use_rs1(use_rs1),
-    .use_rs2(use_rs2),
-    .stall(stall)                           // output
+    .PC_Write(PC_Write),
+    .IF_ID_Write(IF_ID_Write),
+    .ID_CtrlUnitMux_sel(ID_CtrlUnitMux_sel)
   );
 
   wire [31:0] ID_imm_out;
@@ -191,6 +193,7 @@ module cpu(input reset,       // positive reset signal
   reg [4:0] ID_EX_rs2;
   reg ID_EX_is_halted;
   reg ID_EX_ctrl_is_ecall;
+
   // Update ID/EX pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
@@ -215,10 +218,10 @@ module cpu(input reset,       // positive reset signal
     else begin
       ID_EX_ctrl_alu_op <= ID_ctrl_alu_op;
       ID_EX_alu_src <= ID_ctrl_alu_src;
-      ID_EX_mem_write <= (stall ? 0 : ID_ctrl_mem_write);
+      ID_EX_mem_write <= (ID_CtrlUnitMux_sel == 0 ? ID_ctrl_mem_write : 0);
       ID_EX_mem_read <= ID_ctrl_mem_read;
       ID_EX_mem_to_reg <= ID_ctrl_mem_to_reg;
-      ID_EX_reg_write <= (stall ? 0 : ID_ctrl_write_enable);
+      ID_EX_reg_write <= (ID_CtrlUnitMux_sel == 0 ? ID_ctrl_write_enable : 0);
       ID_EX_rs1_data <= ID_rs1_dout;
       ID_EX_rs2_data <= ID_rs2_dout;
       ID_EX_imm <= ID_imm_out;
@@ -228,7 +231,7 @@ module cpu(input reset,       // positive reset signal
       ID_EX_PC <= IF_ID_PC;
       ID_EX_rs1 <= IF_ID_inst[19:15];
       ID_EX_rs2 <= IF_ID_inst[24:20];
-      ID_EX_is_halted <= ID_is_halted;
+      ID_EX_is_halted <= (ID_CtrlUnitMux_sel == 0 ? ID_is_halted : 0);
       ID_EX_ctrl_is_ecall <= ID_ctrl_is_ecall;
     end
   end
@@ -260,6 +263,7 @@ module cpu(input reset,       // positive reset signal
   // ---------- Data Forwarding Unit ----------
   wire [1:0] forward_a;
   wire [1:0] forward_b;
+  wire forward_ecall;
   DataForwardingUnit data_fw_unit (
     .ID_EX_rs1(ID_EX_rs1),
     .ID_EX_rs2(ID_EX_rs2),
@@ -267,8 +271,10 @@ module cpu(input reset,       // positive reset signal
     .MEM_WB_rd(MEM_WB_rd),
     .EX_MEM_reg_write(EX_MEM_reg_write),
     .MEM_WB_reg_write(MEM_WB_reg_write),
+    .ID_ctrl_is_ecall(ID_ctrl_is_ecall),
     .forward_a(forward_a),
-    .forward_b(forward_b)
+    .forward_b(forward_b),
+    .forward_ecall(forward_ecall)
   );
 
   wire [31:0] EX_alu_in1, EX_alu_in2;

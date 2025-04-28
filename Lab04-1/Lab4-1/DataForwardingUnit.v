@@ -5,8 +5,10 @@ module DataForwardingUnit (
     input [4:0] MEM_WB_rd,
     input EX_MEM_reg_write,
     input MEM_WB_reg_write,
+    input ID_ctrl_is_ecall,
     output [1:0] forward_a,
-    output [1:0] forward_b
+    output [1:0] forward_b,
+    output forward_ecall
 );
 
     assign forward_a = (ID_EX_rs1 != 0 && ID_EX_rs1 == EX_MEM_rd && EX_MEM_reg_write) ? 2'b10 :
@@ -15,4 +17,5 @@ module DataForwardingUnit (
     assign forward_b = (ID_EX_rs2 != 0 && ID_EX_rs2 == EX_MEM_rd && EX_MEM_reg_write) ? 2'b10 :
                        (ID_EX_rs2 != 0 && ID_EX_rs2 == MEM_WB_rd && MEM_WB_reg_write) ? 2'b01 :
                         2'b00;
+    assign forward_ecall = ID_ctrl_is_ecall && (EX_MEM_rd == 17) && EX_MEM_reg_write;
 endmodule
