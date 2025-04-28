@@ -7,7 +7,6 @@ module ControlUnit (input [6:0] Instr,
                      output ALUSrc,
                      output RegWrite,
                      output PCtoReg,
-                     output alu_op,
                      output Branch,
                      output is_ecall);
 
@@ -20,7 +19,6 @@ assign MemWrite = (Instr == `STORE);
 assign ALUSrc = (Instr != `ARITHMETIC) && (Instr != `BRANCH);
 assign RegWrite = (Instr != `STORE) && (Instr != `BRANCH);
 assign PCtoReg = (Instr == `JAL) || (Instr == `JALR);
-assign alu_op = 0; // TODO
 assign Branch = (Instr == `BRANCH);
 assign is_ecall = (Instr == `ECALL);
 

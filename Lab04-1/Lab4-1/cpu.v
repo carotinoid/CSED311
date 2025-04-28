@@ -1,13 +1,3 @@
-// Submit this file with other files you created.
-// Do not touch port declarations of the module 'CPU'.
-
-// Guidelines
-// 1. It is highly recommened to `define opcodes and something useful.
-// 2. You can modify modules (except InstMemory, DataMemory, and RegisterFile)
-// (e.g., port declarations, remove modules, define new modules, ...)
-// 3. You might need to describe combinational logics to drive them into the module (e.g., mux, and, or, ...)
-// 4. `include files if required
-
 module cpu(input reset,       // positive reset signal
            input clk,         // clock signal
            output is_halted, // Whehther to finish simulation
@@ -22,7 +12,6 @@ module cpu(input reset,       // positive reset signal
   reg [31:0] IF_ID_inst;           // will be used in ID stage
   /***** ID/EX pipeline registers *****/
   // From the control unit
-  reg ID_EX_ctrl_alu_op;         // will be used in EX stage
   reg ID_EX_alu_src;        // will be used in EX stage
   reg ID_EX_mem_write;      // will be used in MEM stage
   reg ID_EX_mem_read;       // will be used in MEM stage
@@ -114,7 +103,6 @@ module cpu(input reset,       // positive reset signal
 
   wire [4:0] ID_rs1 = (ID_ctrl_is_ecall == 0 ? IF_ID_inst[19:15] : 17);
   wire [4:0] ID_rs2 = IF_ID_inst[24:20];
-
   wire [31:0] WB_ID_rd_din;
   wire [31:0] ID_rs1_dout;
   wire [31:0] ID_rs2_dout;
@@ -144,7 +132,6 @@ module cpu(input reset,       // positive reset signal
   wire ID_ctrl_branch;
   wire ID_is_halted;
 
-
   // ---------- Control Unit ----------
   ControlUnit ctrl_unit (
     .Instr(IF_ID_inst[6:0]),  // input
@@ -154,18 +141,11 @@ module cpu(input reset,       // positive reset signal
     .ALUSrc(ID_ctrl_alu_src),       // output
     .RegWrite(ID_ctrl_write_enable),  // output 
     .PCtoReg(ID_ctrl_pc_to_reg),     // output
-    .alu_op(ID_ctrl_alu_op),        // output
     .Branch(ID_ctrl_branch),      // output
     .is_ecall(ID_ctrl_is_ecall)       // output (ecall inst)
   );
 
-  // assign ID_is_halted = ID_ctrl_is_ecall && (
-  //   (EX_MEM_rd == 17 && EX_MEM_reg_write && EX_MEM_alu_out == 10)
-  //   || (!(EX_MEM_rd == 17 && EX_MEM_reg_write) && MEM_WB_rd == 17 && MEM_WB_reg_write && WB_ID_rd_din == 10)
-  //   || (!(EX_MEM_rd == 17 && EX_MEM_reg_write) && !(MEM_WB_rd == 17 && MEM_WB_reg_write) && print_reg[17] == 10)
-  // );
   assign ID_is_halted = ID_ctrl_is_ecall && ((forward_ecall == 0 ? ID_rs1_dout : EX_MEM_alu_out) == 10);
-  // assign ID_is_halted = 0;
      
   // ---------- Hazard Detection Unit ----------
   wire PC_Write, IF_ID_Write, ID_CtrlUnitMux_sel;
@@ -173,7 +153,7 @@ module cpu(input reset,       // positive reset signal
     .opcode(IF_ID_inst[6:0]),
     .ID_rs1(ID_rs1),          // input
     .ID_rs2(ID_rs2),          // input
-    .EX_MEM_rd(ID_EX_rd),                  // input // (TODO) EX_MEM_rd vs ID_EX_rd ??
+    .ID_EX_rd(ID_EX_rd),                  // input // (TODO) EX_MEM_rd vs ID_EX_rd ??
     .ID_EX_mem_read(ID_EX_mem_read),        // input
     .ID_ctrl_is_ecall(ID_ctrl_is_ecall),
     .PC_Write(PC_Write),
@@ -197,7 +177,6 @@ module cpu(input reset,       // positive reset signal
   // Update ID/EX pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
-      ID_EX_ctrl_alu_op <= 0;
       ID_EX_alu_src <= 0;
       ID_EX_mem_write <= 0;
       ID_EX_mem_read <= 0;
@@ -216,7 +195,6 @@ module cpu(input reset,       // positive reset signal
       ID_EX_ctrl_is_ecall <= 0;
     end
     else begin
-      ID_EX_ctrl_alu_op <= ID_ctrl_alu_op;
       ID_EX_alu_src <= ID_ctrl_alu_src;
       ID_EX_mem_write <= (ID_CtrlUnitMux_sel == 0 ? ID_ctrl_mem_write : 0);
       ID_EX_mem_read <= ID_ctrl_mem_read;
@@ -247,7 +225,6 @@ module cpu(input reset,       // positive reset signal
   // ---------- ALU Control Unit ----------
   ALUControlUnit alu_ctrl_unit (
     .instr(ID_EX_ALU_ctrl_unit_input),  // input
-    .ctrl_alu_op(ID_EX_ctrl_alu_op),
     .alu_op(EX_alu_op)         // output
   );
 
@@ -374,7 +351,6 @@ module cpu(input reset,       // positive reset signal
   end
 
   assign is_halted = MEM_WB_is_halted;
-
 
   Mux2 WB_mux (
     .sel(MEM_WB_mem_to_reg),          // input

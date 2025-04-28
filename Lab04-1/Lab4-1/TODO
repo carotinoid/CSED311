@@ -1,5 +1,0 @@
-1. ctrl_alu_op는 뭘 하는 녀석인가? (TODO, 아마 필요 없는 듯)
-2. ECALL일 때 정지 판단은 어떻게 할 것인가?
- - 아마 data forwarding으로 x17 레지스터 값을 받아와야 할 것 같고, data forwarding unit에 ecall 로직을 추가해야 할듯
- - 그 다음에 is_halted를 레지스터로 차례차례 넘기고, is_halted = WB_is_halted로 할당하면 될듯.
-3. 시뮬레이션 결과가 정답이랑 다른 경우 원인 찾기 (x13, x14, x15)
