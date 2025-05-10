@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# add your test name here
+tests=(basic ifelse loop non-controlflow recursive sw_then_lw)
+
+usage() {
+  cat <<EOF
+Usage: ./$(basename "$0") [TestName or TestNumber]
+TestNumber:
+EOF
+    for i in "${!tests[@]}"; do
+        printf "  %d) %s\n" "$i" "${tests[i]}"
+    done
+  exit 1
+}
+
+(( $# == 1 )) || usage
+
+if [[ $1 =~ ^[0-9]+$ ]]; then
+  idx=$1
+  (( idx>=0 && idx<${#tests[@]} )) || usage
+  test_name=${tests[idx]}
+else
+  test_name=$1
+  [[ " ${tests[*]} " == *" $test_name "* ]] || usage
+fi
+
+for f in tb_top.cpp InstMemory.v; do
+  [[ -f $f ]] || { echo "ERROR: '$f' does not exist."; exit 1; }
+done
+
+sed -i -E \
+  "s|(readmemh\(\"\.\/student_tb/)[^\"/]+(_mem\.txt)|\1${test_name}\2|" \
+  InstMemory.v
+
+if [[ $test_name == "non-controlflow" ]]; then
+    test_name=${test_name}"_with_data_forwarding"
+fi
+
+sed -i -E \
+  "s|(filename = \"\./student_tb/)answer_[^\"]*(\";)|\1answer_${test_name}.txt\2|" \
+  tb_top.cpp
+
+echo "✔"
