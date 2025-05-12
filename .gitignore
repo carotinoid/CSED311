@@ -5,4 +5,5 @@ result
 result.log
 /verilator
 temp
+.temp
 tmp
