@@ -47,7 +47,6 @@ module cpu(input reset,       // positive reset signal
   // ---------- Update program counter ----------
   wire [31:0] IF_pred_pc;
   wire [31:0] IF_next_pc;
-  wire IF_taken;
 
   // ---------- Bubble Generator Unit ----------
   wire IF_is_bubble, ID_is_bubble;
@@ -64,10 +63,12 @@ module cpu(input reset,       // positive reset signal
   BranchPredictUnit branch_pred_unit(
     .current_pc(IF_current_pc),
     .predict_pc(IF_pred_pc),
-    .taken(IF_taken),
+    .clk(clk),
+    .reset(reset),
 
-    .faux_pas_pc(0),
-    .actual_behavior(0)
+    .update(EX_predictor_update), // TODO: update
+    .faux_pas_pc(ID_EX_PC),
+    .actual_behavior(EX_actual_behavior)
   );
 
   wire [1:0] IF_PCsrc;
@@ -112,7 +113,6 @@ module cpu(input reset,       // positive reset signal
   wire IF_pred_wrong = !IF_is_ctrlflow && (IF_pred_pc != IF_next_addr);
 
   reg [31:0] IF_ID_PC;
-  reg IF_ID_taken;
   reg IF_ID_is_bubble;
   // Update IF/ID pipeline registers here
   always @(posedge clk) begin
@@ -120,20 +120,17 @@ module cpu(input reset,       // positive reset signal
       IF_ID_is_bubble <= 1;
       IF_ID_inst <= 0;
       IF_ID_PC <= (reset?0:IF_current_pc);
-      IF_ID_taken <= 0;
     end
     else begin
       if(IF_ID_Write) begin
         IF_ID_is_bubble <= 0;
         IF_ID_inst <= IF_instr;
         IF_ID_PC <= IF_current_pc;
-        IF_ID_taken <= IF_taken;
       end
       else begin
         IF_ID_is_bubble <= 0;
         IF_ID_inst <= IF_ID_inst;
         IF_ID_PC <= IF_ID_PC;
-        IF_ID_taken <= IF_ID_taken;
       end
     end
   end
@@ -351,6 +348,8 @@ module cpu(input reset,       // positive reset signal
   wire [31:0] EX_next_addr = (ID_EX_JAL || (ID_EX_branch && EX_alu_bcond)) ? EX_branch_addr 
                                                          : (ID_EX_JALR) ? EX_alu_result : ID_EX_PC + 4;
   wire EX_pred_wrong = !IF_ID_is_bubble && !ID_EX_is_bubble && !ID_EX_is_stall && (IF_ID_PC != EX_next_addr);
+  wire EX_actual_behavior = (ID_EX_JAL || (ID_EX_branch && EX_alu_bcond) || ID_EX_JALR);
+  wire EX_predictor_update = (ID_EX_JAL || ID_EX_branch || ID_EX_JALR);
 
   reg EX_MEM_bcond;
   reg [31:0] EX_MEM_branch_addr;
