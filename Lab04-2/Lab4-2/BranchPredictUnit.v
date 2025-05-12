@@ -8,6 +8,6 @@ module BranchPredictUnit(
 );
 
 assign taken = 0;
-assign predict_pc = current_pc+4;
+assign predict_pc = current_pc + 4;
 
 endmodule

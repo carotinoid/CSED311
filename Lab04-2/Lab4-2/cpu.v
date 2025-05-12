@@ -144,6 +144,7 @@ module cpu(input reset,       // positive reset signal
   wire [31:0] ID_rs1_dout;
   wire [31:0] ID_rs2_dout;
 
+  wire [31:0] rd_din = (MEM_WB_pc_to_reg ? MEM_WB_PC + 4 : WB_ID_rd_din);
   // ---------- Register File ----------
   RegisterFile reg_file (
     .reset (reset),        // input
@@ -151,7 +152,7 @@ module cpu(input reset,       // positive reset signal
     .rs1 (ID_rs1),          // input
     .rs2 (ID_rs2),          // input
     .rd (MEM_WB_rd),           // input
-    .rd_din (WB_ID_rd_din),       // input
+    .rd_din (rd_din),       // input
     .write_enable (MEM_WB_reg_write),    // input
     .rs1_dout (ID_rs1_dout),     // output
     .rs2_dout (ID_rs2_dout),      // output
@@ -223,6 +224,7 @@ module cpu(input reset,       // positive reset signal
   reg ID_EX_is_stall;
   reg ID_EX_is_halted;
   reg ID_EX_ctrl_is_ecall;
+  reg ID_EX_pc_to_reg;
 
   // Update ID/EX pipeline registers here
   reg ID_EX_is_bubble;
@@ -249,6 +251,7 @@ module cpu(input reset,       // positive reset signal
 
       ID_EX_is_stall <= 0;
       ID_EX_is_bubble <= 1;
+      ID_EX_pc_to_reg <= 0;
     end
     else begin
       ID_EX_alu_src <= ID_ctrl_alu_src;
@@ -271,6 +274,7 @@ module cpu(input reset,       // positive reset signal
       ID_EX_JALR <= ID_ctrl_JALR;
       ID_EX_is_halted <= (ID_CtrlUnitMux_sel == 0 ? ID_is_halted : 0);
       ID_EX_ctrl_is_ecall <= ID_ctrl_is_ecall;
+      ID_EX_pc_to_reg <= ID_ctrl_pc_to_reg;
     end
   end
 
@@ -353,6 +357,9 @@ module cpu(input reset,       // positive reset signal
   reg EX_MEM_is_halted;
   // Update EX/MEM pipeline registers here
   reg EX_MEM_is_bubble;
+  reg EX_MEM_pc_to_reg;
+  reg [31:0] EX_MEM_PC;
+
   always @(posedge clk) begin
     if (reset) begin
       EX_MEM_is_bubble <= 1;
@@ -367,6 +374,9 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_bcond <= 0;
       EX_MEM_branch_addr <= 0;
       EX_MEM_is_halted <= 0;
+
+      EX_MEM_pc_to_reg <= 0;
+      EX_MEM_PC <= 0;
     end
     else begin
       EX_MEM_is_bubble <= ID_EX_is_bubble;
@@ -381,6 +391,9 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_bcond <= EX_alu_bcond;
       EX_MEM_branch_addr <= EX_branch_addr;
       EX_MEM_is_halted <= ID_EX_is_halted;
+
+      EX_MEM_pc_to_reg <= ID_EX_pc_to_reg;
+      EX_MEM_PC <= ID_EX_PC;
     end
   end
 
@@ -399,6 +412,10 @@ module cpu(input reset,       // positive reset signal
   reg [4:0] MEM_WB_rd;
   reg MEM_WB_is_halted;
   reg MEM_WB_is_bubble;
+
+  reg MEM_WB_pc_to_reg;
+  reg [31:0] MEM_WB_PC;
+
   // Update MEM/WB pipeline registers here
   always @(posedge clk) begin
     if (reset) begin
@@ -409,6 +426,9 @@ module cpu(input reset,       // positive reset signal
       MEM_WB_mem_to_reg_src_2 <= 0;
       MEM_WB_rd <= 0;
       MEM_WB_is_halted <= 0;
+
+      MEM_WB_pc_to_reg <= 0;
+      MEM_WB_PC <= 0;
     end
     else begin
       MEM_WB_is_bubble <= EX_MEM_is_bubble;
@@ -418,6 +438,9 @@ module cpu(input reset,       // positive reset signal
       MEM_WB_mem_to_reg_src_2 <= MEM_dout; // 1 sel
       MEM_WB_rd <= EX_MEM_rd;
       MEM_WB_is_halted <= EX_MEM_is_halted;
+
+      MEM_WB_pc_to_reg <= EX_MEM_pc_to_reg;
+      MEM_WB_PC <= EX_MEM_PC;
     end
   end
 
