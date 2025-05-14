@@ -29,3 +29,63 @@ Branch Prediction을 어떻게 하는지와 상관없이, 다음 로직을 구�
 * control 명령어가 없는 basic, non-controlflow 테스트는 사이클 수가 동일하였다.
 * ifelse 테스트는 Always taken만 사이클 수가 높게 나왔다. 이는 Always taken 방법이 ifelse보다 반복문에 더 친숙하며, ifelse에서는 잘못된 예측이 많은 것으로 생각된다.
 * loop와 recursive 테스트에서 Gshare 구현이 Always not taken보다 오히려 더 사이클 수가 증가했는데, 이는 Gshare가 처음에 초기화 된 상태로 시작하고, 분기 예측에 익숙해지기까지 시간이 부족했기 때문이라고 생각된다.
+
+ubuntu@subvnic:~/CSED311/Lab04-2/Lab4-2$ ./convert 
+Usage: ./convert [TestName or TestNumber]
+TestNumber:
+  0) basic
+  1) ifelse
+  2) loop
+  3) non-controlflow
+  4) recursive
+ubuntu@subvnic:~/CSED311/Lab04-2/Lab4-2$ ./check
+Test 0
+TOTAL CYCLE : 35 (Answer : 36)
+Correct output : 32/32
+Test 1
+TOTAL CYCLE : 43 (Answer : 44)
+Correct output : 32/32
+Test 2
+TOTAL CYCLE : 326 (Answer : 323)
+Correct output : 32/32
+Test 3
+TOTAL CYCLE : 46 (Answer : 46)
+Correct output : 32/32
+Test 4
+TOTAL CYCLE : 1203 (Answer : 1188)
+Correct output : 32/32
+
+FINAL REGISTER OUTPUT
+ 0 00000000 (Answer : 00000000)
+ 1 00000000 (Answer : 00000000)
+ 2 00002ffc (Answer : 00002ffc)
+ 3 00000000 (Answer : 00000000)
+ 4 00000000 (Answer : 00000000)
+ 5 00000000 (Answer : 00000000)
+ 6 00000000 (Answer : 00000000)
+ 7 00000000 (Answer : 00000000)
+ 8 00000000 (Answer : 00000000)
+ 9 00000000 (Answer : 00000000)
+10 0000000a (Answer : 0000000a)
+11 0000003f (Answer : 0000003f)
+12 fffffff1 (Answer : fffffff1)
+13 0000002f (Answer : 0000002f)
+14 0000000e (Answer : 0000000e)
+15 00000021 (Answer : 00000021)
+16 0000000a (Answer : 0000000a)
+17 0000000a (Answer : 0000000a)
+18 00000000 (Answer : 00000000)
+19 00000000 (Answer : 00000000)
+20 00000000 (Answer : 00000000)
+21 00000000 (Answer : 00000000)
+22 00000000 (Answer : 00000000)
+23 00000000 (Answer : 00000000)
+24 00000000 (Answer : 00000000)
+25 00000000 (Answer : 00000000)
+26 00000000 (Answer : 00000000)
+27 00000000 (Answer : 00000000)
+28 00000000 (Answer : 00000000)
+29 00000000 (Answer : 00000000)
+30 00000000 (Answer : 00000000)
+31 00000000 (Answer : 00000000)
+Correct output : 32/32

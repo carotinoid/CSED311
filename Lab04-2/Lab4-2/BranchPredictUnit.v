@@ -48,12 +48,12 @@ always @(posedge clk) begin
 end
 
 /* Gshare */
-// assign predict_pc = (tag == tag_table[index]) && (PHT[index ^ BHSR] > 2'b01) ? BTB[index] : current_pc + 4;
+assign predict_pc = (tag == tag_table[index]) && (PHT[index ^ BHSR] > 2'b01) ? BTB[index] : current_pc + 4;
 
 /* always not taken */
 // assign predict_pc = current_pc + 4; 
 
 /* always taken */
-assign predict_pc = (tag == tag_table[index]) ? BTB[index] : current_pc + 4;
+// assign predict_pc = (tag == tag_table[index]) ? BTB[index] : current_pc + 4;
 
 endmodule
