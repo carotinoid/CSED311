@@ -66,7 +66,7 @@ module cpu(input reset,       // positive reset signal
     .clk(clk),
     .reset(reset),
 
-    .update(EX_predictor_update), // TODO: update
+    .update(EX_predictor_update),
     .faux_pas_pc(ID_EX_PC),
     .actual_behavior(EX_actual_behavior)
   );
@@ -192,7 +192,7 @@ module cpu(input reset,       // positive reset signal
     .opcode(IF_ID_inst[6:0]),
     .ID_rs1(ID_rs1),          // input
     .ID_rs2(ID_rs2),          // input
-    .ID_EX_rd(ID_EX_rd),                  // input // (TODO) EX_MEM_rd vs ID_EX_rd ??
+    .ID_EX_rd(ID_EX_rd),                  // input
     .ID_EX_mem_read(ID_EX_mem_read),        // input
     .ID_ctrl_is_ecall(ID_ctrl_is_ecall),
     .PC_Write(PC_Write),
