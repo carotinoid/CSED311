@@ -7,7 +7,7 @@ module InstMemory #(parameter MEM_DEPTH = 16384) (input reset,
   reg [31:0] mem[0:MEM_DEPTH - 1];
   // Do not touch imem_addr
   wire [31:0] imem_addr;
-  assign imem_addr = {addr >> 2};
+  assign imem_addr = {2'b00, addr >> 2};
 
   // Asynchronously read instruction from the memory 
   assign dout = mem[imem_addr];
@@ -22,7 +22,7 @@ module InstMemory #(parameter MEM_DEPTH = 16384) (input reset,
         /* verilator lint_on BLKSEQ */
         // DO NOT TOUCH COMMENT ABOVE
       // Provide path of the file including instructions with binary format
-      $readmemh("/path/to/binary_format/file", mem);
+      $readmemh("./student_tb/naive_matmul_unroll.mem", mem);
     end
   end
 

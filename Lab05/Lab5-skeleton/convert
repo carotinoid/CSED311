@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# add your test name here
+tests=(naive_matmul_unroll opt_matmul_unroll)
+
+usage() {
+  cat <<EOF
+Usage: ./$(basename "$0") [TestName or TestNumber]
+TestNumber:
+EOF
+    for i in "${!tests[@]}"; do
+        printf "  %d) %s\n" "$i" "${tests[i]}"
+    done
+  exit 1
+}
+
+(( $# == 1 )) || usage
+
+if [[ $1 =~ ^[0-9]+$ ]]; then
+  idx=$1
+  (( idx>=0 && idx<${#tests[@]} )) || usage
+  test_name=${tests[idx]}
+else
+  test_name=$1
+  [[ " ${tests[*]} " == *" $test_name "* ]] || usage
+fi
+
+for f in tb_top.cpp InstMemory.v; do
+  [[ -f $f ]] || { echo "ERROR: '$f' does not exist."; exit 1; }
+done
+
+if [[ $test_name == naive_matmul_unroll ]]; then
+    answer_file="naive_ripes_result.txt"
+    memory_file="naive_matmul_unroll.mem"
+fi
+if [[ $test_name == opt_matmul_unroll ]]; then
+    answer_file="opt_ripes_result.txt"
+    memory_file="opt_matmul_unroll.mem"
+fi
+
+sed -i -E \
+  "s|(readmemh\(\"\.\/student_tb/)[^\"/]+(\")|\1${memory_file}\2|" \
+  InstMemory.v
+
+sed -i -E \
+  "s|(filename = \"\./student_tb/)[^\"]*(\";)|\1${answer_file}\2|" \
+  tb_top.cpp
+
+echo "✔"
