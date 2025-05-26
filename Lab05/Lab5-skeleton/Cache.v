@@ -32,7 +32,7 @@ module Cache #(parameter LINE_SIZE = 16,
   assign                      is_hit           = _is_hit;
   assign                      dout             = _dout;
 
-  // localparam                  LINE_BIT         = `CLOG2(LINE_SIZE);
+  localparam                  LINE_BIT         = `CLOG2(LINE_SIZE);
   localparam                  SET_BIT          = `CLOG2(NUM_SETS);
   localparam                  BLK_OFFSET_BIT   = `CLOG2(LINE_SIZE);
   localparam                  TAG_BIT          = 32 - SET_BIT - BLK_OFFSET_BIT;
@@ -94,7 +94,7 @@ module Cache #(parameter LINE_SIZE = 16,
   end
 
 
-  reg [1:0] state;
+  reg [2:0] state;
 
   always @(posedge clk) begin
     if(reset) begin
@@ -119,52 +119,135 @@ module Cache #(parameter LINE_SIZE = 16,
         if(is_input_valid) state <= 1;
       end
       else if(state == 1) begin // COMPARE TAG
-        if(hit && mem_read) begin
-          _is_hit <= 1;
-          _dout <= cache_mem[set_index][hit_way][block_offset * 8 +: 32]; // TODO: is this correct?
-          _is_output_valid <= 1;
-          _is_ready <= 1;
-          lru_bits[set_index] <= lru_bits[set_index] + 1;
-          state <= 0; 
+        if(!(is_input_valid && !_is_output_valid)) begin
+          _is_output_valid <= 0;
         end
         else begin
-          _is_hit <= 0;
-          _is_output_valid <= 0;
-          _is_ready <= 0;
-          dmem_is_input_valid <= 1;
-          dmem_addr <= {tag, set_index, block_offset}; 
-          dmem_mem_read <= 1;
-          if (dirty_bits[set_index][victim]) begin
-            state <= 3;
+          /////////////// HIT ///////////////
+          if(hit && mem_read) begin
+            _dout <= cache_mem[set_index][hit_way][block_offset * 8 +: 32];
+            _is_hit <= 1;
+            _is_output_valid <= 1;
+            _is_ready <= 1;
+            lru_bits[set_index] <= lru_counter;
+            lru_counter <= lru_counter + 1;
+          end
+          else if(hit && mem_write) begin
+            cache_mem[set_index][hit_way][block_offset * 8 +: 32] <= din;
+            _is_hit <= 1;
+            _is_output_valid <= 1;
+            _is_ready <= 1;
+            dirty_bits[set_index][hit_way] <= 1; 
+            lru_bits[set_index] <= lru_counter;
+            lru_counter <= lru_counter + 1;
+          end
+          /////////////// MISS ///////////////
+          else if(!hit && mem_read) begin
+            _is_hit <= 0;
+            _is_output_valid <= 0;
+            _is_ready <= 0;
+            dmem_is_input_valid <= 0;
+            state <= 4; // Go to read datamemory state
+          end
+          else if(!hit && mem_write) begin
+            _is_hit <= 0;
+            _is_output_valid <= 0;
+            _is_ready <= 0;
+            dmem_is_input_valid <= 0;
+            // First get memory, then write to cache
+            state <= 4; // Go to write datamemory state
           end
           else begin
-            state <= 2;
+            _is_hit <= 0;
+            _is_output_valid <= 0;
+            _is_ready <= 1; // No operation, just ready
           end
         end
       end
-      else if(state == 2) begin // ALLOCATE
-        if(!dmem_is_output_valid) begin
-          state <= 2;
-          dmem_mem_write <= 0;
-          dmem_din <= 0;
+      else if(state == 2) begin // Read datamemory state
+        if(dmem_is_output_valid) begin
+          _is_hit <= 0;
+          _is_output_valid <= 1;
+          cache_mem[set_index][victim] <= dmem_dout;
+          _dout <= dmem_dout[block_offset * 8 +: 32];
+          valid_bits[set_index][victim] <= 1;
+          dirty_bits[set_index][victim] <= 0; // Since we read from cache, it is not dirty
+          tags[set_index][victim] <= tag;
+          lru_bits[set_index] <= lru_counter;
+          lru_counter <= lru_counter + 1;
+          if(mem_write) begin
+            state <= 3; // Go to write datamemory state
+            _is_ready <= 0; 
+
+          end
+          else begin
+            state <= 0; // Go back to IDLE state
+            _is_ready <= 1; 
+          end
         end
         else begin
-          cache_mem[set_index][victim] <= dmem_dout;
-          valid_bits[set_index][victim] <= 1;
-          dirty_bits[set_index][victim] <= 0;
-          tags[set_index][victim] <= tag;
-          state <= 1;
+          dmem_is_input_valid <= 1;
+          dmem_addr <= {tag, set_index, block_offset} >> LINE_BIT;
+          dmem_mem_read <= 1;
+          dmem_mem_write <= 0;
+          _is_ready <= 0;
         end
       end
-      else begin  // WRITE BACK
-        if(!dmem_is_output_valid) begin
-          state <= 3; // wait
-          dmem_mem_write <= 1;
-          dmem_din <= cache_mem[set_index][victim];
+      else if(state == 3) begin // Write datamemory state
+        if(dmem_mem_ready) begin
+          dmem_is_input_valid <= 0;
+          dmem_mem_read <= 0;
+          dmem_mem_write <= 0;
+          _is_ready <= 1;
+          _is_output_valid <= 1;
+          _is_hit <= 0;
+
+          // Write to cache memory
+          // exist cache mem ----- din ---- exist cache mem
+          cache_mem[set_index][victim][block_offset * 8 +: 32] <= din;
+          valid_bits[set_index][victim] <= 1;
+          dirty_bits[set_index][victim] <= 1; // Since we wrote to cache, it is dirty
+          tags[set_index][victim] <= tag;
+
+          state <= 0; // Go back to IDLE state
         end
         else begin
-          state <= 2;
+          _is_ready <= 0;
+          _is_output_valid <= 0;
+          
         end
+      end
+      else if(state == 4) begin // If dirty, write back to data memory
+        // if(dmem_mem_ready) begin
+        //   dmem_is_input_valid <= 0;
+        //   dmem_mem_read <= 0;
+        //   dmem_mem_write <= 0;
+        //   _is_ready <= 1;
+
+        //   // If dirty, write back to data memory
+        //   if(dirty_bits[set_index][victim]) begin
+        //     dmem_is_input_valid <= 1;
+        //     dmem_addr <= {tags[set_index][victim], set_index, block_offset} >> LINE_BIT;
+        //     dmem_mem_read <= 0;
+        //     dmem_mem_write <= 1;
+        //     dmem_din <= cache_mem[set_index][victim];
+        //     state <= 3; // Go to write datamemory state
+        //   end
+        //   else begin
+        //     // If not dirty, just read from data memory
+        //     state <= 2; // Go to read datamemory state
+        //   end
+        // end
+        // else begin
+        //   dmem_is_input_valid <= 1;
+        //   dmem_addr <= {tag, set_index, block_offset} >> LINE_BIT;
+        //   dmem_mem_read <= 1;
+        //   dmem_mem_write <= 0;
+        //   _is_ready <= 0;
+        end
+      end
+      else begin
+        state <= 0; // Reset state if something goes wrong
       end
     end
   end
