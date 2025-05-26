@@ -90,7 +90,7 @@ module cpu(input reset,       // positive reset signal
     .reset(reset),       // input (Use reset to initialize PC. Initial value must be 0)
     .clk(clk),         // input
     .next_pc(IF_next_pc),     // input
-    .PC_Write(PC_Write),
+    .PC_Write(PC_Write && !cache_wait),
     .current_pc(IF_current_pc)   // output
   );
   
@@ -123,8 +123,8 @@ module cpu(input reset,       // positive reset signal
     end
     else if(cache_wait) begin
       IF_ID_is_bubble <= IF_ID_is_bubble;
-      IF_ID_inst <= IF_instr;
-      IF_ID_PC <= IF_current_pc;
+      IF_ID_inst <= IF_ID_inst;
+      IF_ID_PC <= IF_ID_PC;
     end
     else begin
       if(IF_ID_Write) begin
@@ -464,7 +464,7 @@ module cpu(input reset,       // positive reset signal
     .reset(reset),
     .clk(clk),
 
-    .is_input_valid(!EX_MEM_is_bubble && !EX_MEM_is_halted && (EX_MEM_mem_read || EX_MEM_mem_write)), // TODO <-- is this right?
+    .is_input_valid(EX_MEM_mem_read || EX_MEM_mem_write), // TODO <-- is this right?
     .addr(EX_MEM_alu_out),
     .mem_read(EX_MEM_mem_read),
     .mem_write(EX_MEM_mem_write),
