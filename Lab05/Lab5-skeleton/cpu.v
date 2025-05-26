@@ -121,6 +121,11 @@ module cpu(input reset,       // positive reset signal
       IF_ID_inst <= 0;
       IF_ID_PC <= (reset?0:IF_current_pc);
     end
+    else if(cache_wait) begin
+      IF_ID_is_bubble <= IF_ID_is_bubble;
+      IF_ID_inst <= IF_instr;
+      IF_ID_PC <= IF_current_pc;
+    end
     else begin
       if(IF_ID_Write) begin
         IF_ID_is_bubble <= 0;
@@ -250,6 +255,30 @@ module cpu(input reset,       // positive reset signal
       ID_EX_is_bubble <= 1;
       ID_EX_pc_to_reg <= 0;
     end
+    else if(cache_wait) begin
+      ID_EX_alu_src <= ID_EX_alu_src; 
+      ID_EX_mem_write <= ID_EX_mem_write; 
+      ID_EX_mem_read <= ID_EX_mem_read; 
+      ID_EX_mem_to_reg <= ID_EX_mem_to_reg; 
+      ID_EX_reg_write <= ID_EX_reg_write; 
+      ID_EX_rs1_data <= ID_EX_rs1_data; 
+      ID_EX_rs2_data <= ID_EX_rs2_data; 
+      ID_EX_imm <= ID_EX_imm; 
+      ID_EX_ALU_ctrl_unit_input <= ID_EX_ALU_ctrl_unit_input; 
+      ID_EX_rd <= ID_EX_rd; 
+      ID_EX_branch <= ID_EX_branch; 
+      ID_EX_PC <= ID_EX_PC; 
+      ID_EX_rs1 <= ID_EX_rs1; 
+      ID_EX_rs2 <= ID_EX_rs2; 
+      ID_EX_JAL <= ID_EX_JAL; 
+      ID_EX_JALR <= ID_EX_JALR; 
+      ID_EX_is_halted <= ID_EX_is_halted; 
+      ID_EX_ctrl_is_ecall <= ID_EX_ctrl_is_ecall; 
+
+      ID_EX_is_stall <= ID_EX_is_stall; 
+      ID_EX_is_bubble <= ID_EX_is_bubble; 
+      ID_EX_pc_to_reg <= ID_EX_pc_to_reg; 
+    end
     else begin
       ID_EX_alu_src <= ID_ctrl_alu_src;
       ID_EX_is_stall <= ID_CtrlUnitMux_sel;
@@ -377,6 +406,23 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_pc_to_reg <= 0;
       EX_MEM_PC <= 0;
     end
+    else if (cache_wait) begin
+      EX_MEM_is_bubble <= EX_MEM_is_bubble;
+      EX_MEM_mem_write <= EX_MEM_mem_write;
+      EX_MEM_mem_read <= EX_MEM_mem_read;
+      EX_MEM_is_branch <= EX_MEM_is_branch;
+      EX_MEM_mem_to_reg <= EX_MEM_mem_to_reg;
+      EX_MEM_reg_write <= EX_MEM_reg_write;
+      EX_MEM_alu_out <= EX_MEM_alu_out;
+      EX_MEM_dmem_data <= EX_MEM_dmem_data;
+      EX_MEM_rd <= EX_MEM_rd;
+      EX_MEM_bcond <= EX_MEM_bcond;
+      EX_MEM_branch_addr <= EX_MEM_branch_addr;
+      EX_MEM_is_halted <= EX_MEM_is_halted;
+
+      EX_MEM_pc_to_reg <= EX_MEM_pc_to_reg;
+      EX_MEM_PC <= EX_MEM_PC;
+    end
     else begin
       EX_MEM_is_bubble <= ID_EX_is_bubble;
       EX_MEM_mem_write <= ID_EX_mem_write;
@@ -407,26 +453,7 @@ module cpu(input reset,       // positive reset signal
   //   .dout (MEM_dout)        // output
   // );
 
-// module Cache #(parameter LINE_SIZE = 16,
-//                parameter NUM_SETS = 32, /* Your choice */
-//                parameter NUM_WAYS = 2 /* Your choice */) (
-//     input reset,
-//     input clk,
-
-//     input is_input_valid,
-//     input [31:0] addr,
-//     input mem_read,
-//     input mem_write,
-//     input [31:0] din,
-
-//     output is_ready,
-//     output is_output_valid,
-//     output [31:0] dout,
-//     output is_hit
-// );
-
   wire is_ready;
-  wire cache_miss = (EX_MEM_mem_read || EX_MEM_mem_write) && !is_ready;
 
   wire cache_is_ready;
   wire [31:0] MEM_dout;
@@ -449,6 +476,25 @@ module cpu(input reset,       // positive reset signal
     .is_hit(cache_is_hit)
   );
 
+  wire cache_wait = ((EX_MEM_mem_read || EX_MEM_mem_write) && (!is_ready || !cache_is_output_valid));
+  
+  reg access_cnt, hit_cnt;
+  always @(posedge clk) begin
+    if(reset) begin
+      access_cnt <= 0;
+      hit_cnt <= 0;
+    end
+    else begin
+      if((EX_MEM_mem_read || EX_MEM_mem_write) && is_ready) begin
+        access_cnt <= access_cnt + 1;
+      end
+      else access_cnt <= access_cnt + 1;
+      if((EX_MEM_mem_read || EX_MEM_mem_write) && cache_is_output_valid && cache_is_hit) begin
+        hit_cnt <= hit_cnt + 1;
+      end
+    end
+  end
+
   reg [4:0] MEM_WB_rd;
   reg MEM_WB_is_halted;
   reg MEM_WB_is_bubble;
@@ -469,6 +515,17 @@ module cpu(input reset,       // positive reset signal
 
       MEM_WB_pc_to_reg <= 0;
       MEM_WB_PC <= 0;
+    end
+    else if (cache_wait) begin
+      MEM_WB_is_bubble <= MEM_WB_is_bubble;
+      MEM_WB_mem_to_reg <= MEM_WB_mem_to_reg;
+      MEM_WB_reg_write <= MEM_WB_reg_write;
+      MEM_WB_mem_to_reg_src_1 <= MEM_WB_mem_to_reg_src_1;
+      MEM_WB_mem_to_reg_src_2 <= MEM_WB_mem_to_reg_src_2;
+      MEM_WB_rd <= MEM_WB_rd;
+      MEM_WB_is_halted <= MEM_WB_is_halted;
+      MEM_WB_pc_to_reg <= MEM_WB_pc_to_reg;
+      MEM_WB_PC <= MEM_WB_PC;
     end
     else begin
       MEM_WB_is_bubble <= EX_MEM_is_bubble;
