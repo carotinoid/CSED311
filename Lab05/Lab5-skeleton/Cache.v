@@ -64,14 +64,13 @@ module Cache #(parameter LINE_SIZE = 16,
   assign is_ready = (state == 0);
 
   always @(*) begin
-    // Initialize signals to avoid latches
     hit = 0;
     hit_way = 0;
     if(state == 1) begin
       for (i = 0; i < NUM_WAYS; i = i + 1) begin
         if (valid_bits[set_index][i] && tags[set_index][i] == tag) begin
           hit = 1;
-          hit_way = i[0:WAY_BIT - 1];
+          hit_way = i[WAY_BIT - 1:0];
           break;
         end
       end
@@ -101,7 +100,7 @@ module Cache #(parameter LINE_SIZE = 16,
   end
 
 
-  reg [1:0] state;
+  reg [2:0] state;
 
   always @(posedge clk) begin
     if(reset) begin
@@ -115,6 +114,11 @@ module Cache #(parameter LINE_SIZE = 16,
         end
         lru_counter <= 0;
       end
+
+      _dout <= 0;
+      _is_hit <= 0;
+      _is_output_valid <= 0;
+
       state <= 0;
       dmem_is_input_valid <= 0;
       dmem_addr <= 0;
@@ -137,7 +141,7 @@ module Cache #(parameter LINE_SIZE = 16,
             _is_output_valid <= 1;
             lru_bits[set_index][hit_way] <= lru_counter;
             lru_counter <= lru_counter + 1;
-            state <= 0; // Go back to IDLE state
+            state <= 6; // Go back to IDLE state
           end
           else if(hit && mem_write) begin
             _is_hit <= 1;
@@ -146,7 +150,7 @@ module Cache #(parameter LINE_SIZE = 16,
             dirty_bits[set_index][hit_way] <= 1; 
             lru_bits[set_index][hit_way] <= lru_counter;
             lru_counter <= lru_counter + 1;
-            state <= 0; // Go back to IDLE state
+            state <= 6; // Go back to IDLE state
           end
           /////////////// MISS ///////////////
           else if(!hit) begin
@@ -159,7 +163,7 @@ module Cache #(parameter LINE_SIZE = 16,
               dmem_mem_read <= 0;
               dmem_mem_write <= 1;
               dmem_din <= cache_mem[set_index][victim];
-              state <= 2;
+              state <= 4;
             end
             else begin
               dmem_is_input_valid <= 1;
@@ -167,16 +171,18 @@ module Cache #(parameter LINE_SIZE = 16,
               dmem_mem_read <= 1;
               dmem_mem_write <= 0;
               dmem_din <= 0; // No data to write
-              state <= 3;
+              state <= 5;
             end
           end
         end
       end
+      else if(state == 4) state <= 2;
+      else if(state == 5) state <= 3;
       else if(state == 2) begin 
         // Valid + evict + dirty --> memwrite
         dmem_is_input_valid <= 0;
-        if(dmem_is_output_valid) begin //TODO
-          state <= 3;
+        if(dmem_mem_ready) begin //TODO
+          state <= 5;
           dmem_is_input_valid <= 1;
           dmem_addr <= {tag, set_index, block_offset} >> LINE_BIT;
           dmem_mem_read <= 1;
@@ -196,7 +202,7 @@ module Cache #(parameter LINE_SIZE = 16,
           _is_hit <= 0;
           lru_bits[set_index][victim] <= lru_counter;
           lru_counter <= lru_counter + 1;
-          state <= 0; 
+          state <= 6; 
           if(mem_read) begin
           end
           else if(mem_write) begin
@@ -205,10 +211,9 @@ module Cache #(parameter LINE_SIZE = 16,
           end
         end
       end
-      else begin
+      else if(state == 6) begin
         _is_output_valid <= 0;
-
-        state <= 0; // Go back to IDLE state
+        state <= 0;
       end
     end
   end

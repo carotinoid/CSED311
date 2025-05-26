@@ -480,7 +480,8 @@ module cpu(input reset,       // positive reset signal
 
   wire cache_wait = ((EX_MEM_mem_read || EX_MEM_mem_write) && (!is_ready || !cache_is_output_valid));
   
-  reg access_cnt, hit_cnt;
+  reg [31:0] access_cnt;
+  reg [31:0] hit_cnt;
   always @(posedge clk) begin
     if(reset) begin
       access_cnt <= 0;
