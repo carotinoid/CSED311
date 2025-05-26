@@ -453,7 +453,6 @@ module cpu(input reset,       // positive reset signal
   //   .dout (MEM_dout)        // output
   // );
 
-  wire is_ready;
 
   wire cache_is_ready;
   wire [31:0] MEM_dout;
@@ -475,6 +474,9 @@ module cpu(input reset,       // positive reset signal
     .is_output_valid(cache_is_output_valid),
     .is_hit(cache_is_hit)
   );
+
+  wire is_ready = 1;
+  // useless due to different cache design (rw / read, write)
 
   wire cache_wait = ((EX_MEM_mem_read || EX_MEM_mem_write) && (!is_ready || !cache_is_output_valid));
   
