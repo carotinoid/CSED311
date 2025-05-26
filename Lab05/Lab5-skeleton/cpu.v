@@ -192,7 +192,7 @@ module cpu(input reset,       // positive reset signal
     .opcode(IF_ID_inst[6:0]),
     .ID_rs1(ID_rs1),          // input
     .ID_rs2(ID_rs2),          // input
-    .ID_EX_rd(ID_EX_rd),                  // input // (TODO) EX_MEM_rd vs ID_EX_rd ??
+    .ID_EX_rd(ID_EX_rd),                  // input
     .ID_EX_mem_read(ID_EX_mem_read),        // input
     .ID_ctrl_is_ecall(ID_ctrl_is_ecall),
     .PC_Write(PC_Write),
@@ -396,16 +396,57 @@ module cpu(input reset,       // positive reset signal
     end
   end
 
+  // // ---------- Data Memory ----------
+  // DataMemory dmem(
+  //   .reset (reset),      // input
+  //   .clk (clk),        // input
+  //   .addr (EX_MEM_alu_out),       // input
+  //   .din (EX_MEM_dmem_data),        // input
+  //   .mem_read (EX_MEM_mem_read),   // input
+  //   .mem_write (EX_MEM_mem_write),  // input
+  //   .dout (MEM_dout)        // output
+  // );
+
+// module Cache #(parameter LINE_SIZE = 16,
+//                parameter NUM_SETS = 32, /* Your choice */
+//                parameter NUM_WAYS = 2 /* Your choice */) (
+//     input reset,
+//     input clk,
+
+//     input is_input_valid,
+//     input [31:0] addr,
+//     input mem_read,
+//     input mem_write,
+//     input [31:0] din,
+
+//     output is_ready,
+//     output is_output_valid,
+//     output [31:0] dout,
+//     output is_hit
+// );
+
+  wire is_ready;
+  wire cache_miss = (EX_MEM_mem_read || EX_MEM_mem_write) && !is_ready;
+
+  wire cache_is_ready;
   wire [31:0] MEM_dout;
-  // ---------- Data Memory ----------
-  DataMemory dmem(
-    .reset (reset),      // input
-    .clk (clk),        // input
-    .addr (EX_MEM_alu_out),       // input
-    .din (EX_MEM_dmem_data),        // input
-    .mem_read (EX_MEM_mem_read),   // input
-    .mem_write (EX_MEM_mem_write),  // input
-    .dout (MEM_dout)        // output
+  wire cache_is_output_valid;
+  wire cache_is_hit;
+
+  Cache cache(
+    .reset(reset),
+    .clk(clk),
+
+    .is_input_valid(!EX_MEM_is_bubble && !EX_MEM_is_halted && (EX_MEM_mem_read || EX_MEM_mem_write)), // TODO <-- is this right?
+    .addr(EX_MEM_alu_out),
+    .mem_read(EX_MEM_mem_read),
+    .mem_write(EX_MEM_mem_write),
+    .din(EX_MEM_dmem_data),
+
+    .is_ready(cache_is_ready),
+    .dout(MEM_dout),
+    .is_output_valid(cache_is_output_valid),
+    .is_hit(cache_is_hit)
   );
 
   reg [4:0] MEM_WB_rd;
