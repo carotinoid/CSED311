@@ -210,7 +210,6 @@ module cpu(input reset,       // positive reset signal
     .ID_CtrlUnitMux_sel(ID_CtrlUnitMux_sel)
   );
 
-
   wire [31:0] ID_imm_out;
   // ---------- Immediate Generator ----------
   ImmediateGenerator imm_gen(
@@ -255,7 +254,6 @@ module cpu(input reset,       // positive reset signal
       ID_EX_JALR <= 0;
       ID_EX_is_halted <= 0;
       ID_EX_ctrl_is_ecall <= 0;
-
       ID_EX_is_stall <= 0;
       ID_EX_is_bubble <= 1;
       ID_EX_pc_to_reg <= 0;
@@ -279,7 +277,6 @@ module cpu(input reset,       // positive reset signal
       ID_EX_JALR <= ID_EX_JALR; 
       ID_EX_is_halted <= ID_EX_is_halted; 
       ID_EX_ctrl_is_ecall <= ID_EX_ctrl_is_ecall; 
-
       ID_EX_is_stall <= ID_EX_is_stall; 
       ID_EX_is_bubble <= ID_EX_is_bubble; 
       ID_EX_pc_to_reg <= ID_EX_pc_to_reg; 
@@ -303,7 +300,6 @@ module cpu(input reset,       // positive reset signal
       ID_EX_JALR <= 0;
       ID_EX_is_halted <= 0;
       ID_EX_ctrl_is_ecall <= 0;
-
       ID_EX_is_stall <= 0;
       ID_EX_is_bubble <= 1;
       ID_EX_pc_to_reg <= 0;
@@ -339,7 +335,6 @@ module cpu(input reset,       // positive reset signal
     .in1(ID_EX_imm),         // input
     .out(EX_branch_addr)          // output
   );
-
 
   wire [7:0] EX_alu_op;
   // ---------- ALU Control Unit ----------
@@ -431,7 +426,6 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_bcond <= 0;
       EX_MEM_branch_addr <= 0;
       EX_MEM_is_halted <= 0;
-
       EX_MEM_pc_to_reg <= 0;
       EX_MEM_PC <= 0;
     end
@@ -448,7 +442,6 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_bcond <= EX_MEM_bcond;
       EX_MEM_branch_addr <= EX_MEM_branch_addr;
       EX_MEM_is_halted <= EX_MEM_is_halted;
-
       EX_MEM_pc_to_reg <= EX_MEM_pc_to_reg;
       EX_MEM_PC <= EX_MEM_PC;
     end
@@ -465,29 +458,17 @@ module cpu(input reset,       // positive reset signal
       EX_MEM_bcond <= EX_alu_bcond;
       EX_MEM_branch_addr <= EX_branch_addr;
       EX_MEM_is_halted <= ID_EX_is_halted;
-
       EX_MEM_pc_to_reg <= ID_EX_pc_to_reg;
       EX_MEM_PC <= ID_EX_PC;
     end
   end
-
-  // // ---------- Data Memory ----------
-  // DataMemory dmem(
-  //   .reset (reset),      // input
-  //   .clk (clk),        // input
-  //   .addr (EX_MEM_alu_out),       // input
-  //   .din (EX_MEM_dmem_data),        // input
-  //   .mem_read (EX_MEM_mem_read),   // input
-  //   .mem_write (EX_MEM_mem_write),  // input
-  //   .dout (MEM_dout)        // output
-  // );
-
 
   wire cache_is_ready;
   wire [31:0] MEM_dout;
   wire cache_is_output_valid;
   wire cache_is_hit;
 
+  // ---------- Cache ---------- (instead of Data Memory)
   Cache cache(
     .reset(reset),
     .clk(clk),
@@ -521,14 +502,11 @@ module cpu(input reset,       // positive reset signal
       if((EX_MEM_mem_read || EX_MEM_mem_write) && cache_is_output_valid) begin
         access_cnt <= access_cnt + 1;
       end
-
       if((EX_MEM_mem_read || EX_MEM_mem_write) && cache_is_output_valid && cache_is_hit) begin
         hit_cnt <= hit_cnt + 1;
       end
     end
   end
-
-  
 
   reg [4:0] MEM_WB_rd;
   reg MEM_WB_is_halted;
@@ -547,7 +525,6 @@ module cpu(input reset,       // positive reset signal
       MEM_WB_mem_to_reg_src_2 <= 0;
       MEM_WB_rd <= 0;
       MEM_WB_is_halted <= 0;
-
       MEM_WB_pc_to_reg <= 0;
       MEM_WB_PC <= 0;
     end
@@ -570,16 +547,15 @@ module cpu(input reset,       // positive reset signal
       MEM_WB_mem_to_reg_src_2 <= MEM_dout; // 1 sel
       MEM_WB_rd <= EX_MEM_rd;
       MEM_WB_is_halted <= EX_MEM_is_halted;
-
       MEM_WB_pc_to_reg <= EX_MEM_pc_to_reg;
       MEM_WB_PC <= EX_MEM_PC;
     end
 
-    if(!reset && EX_MEM_is_halted) begin
-      $display("Cache Access Count: %d", access_cnt);
-      $display("Cache Hit Count: %d", hit_cnt);
-      $display("Cache Hit Rate: %f", hit_cnt * 1.0 / access_cnt);
-    end
+    // if(!reset && EX_MEM_is_halted) begin
+    //   $display("Cache Access Count: %d", access_cnt);
+    //   $display("Cache Hit Count: %d", hit_cnt);
+    //   $display("Cache Hit Rate: %f", hit_cnt * 1.0 / access_cnt);
+    // end
   end
 
   assign is_halted = MEM_WB_is_halted;

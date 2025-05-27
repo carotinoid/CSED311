@@ -17,11 +17,11 @@ module Cache #(parameter LINE_SIZE = 16,
     output [31:0] dout,
     output is_hit
 );
-  // Wire declarations
-  // wire is_data_mem_ready;
-  // assign is_ready = is_data_mem_ready;
-  // Reg declarations
-  // You might need registers to keep the status.
+
+  localparam                  SET_BIT          = `CLOG2(NUM_SETS);
+  localparam                  BLK_OFFSET_BIT   = `CLOG2(LINE_SIZE);
+  localparam                  TAG_BIT          = 32 - SET_BIT - BLK_OFFSET_BIT;
+  localparam                  WAY_BIT          = `CLOG2(NUM_WAYS);
 
   reg [31:0]                  _dout;
   reg                         _is_output_valid;
@@ -29,11 +29,6 @@ module Cache #(parameter LINE_SIZE = 16,
   assign                      is_output_valid  = _is_output_valid;
   assign                      is_hit           = _is_hit;
   assign                      dout             = _dout;
-
-  localparam                  SET_BIT          = `CLOG2(NUM_SETS);
-  localparam                  BLK_OFFSET_BIT   = `CLOG2(LINE_SIZE);
-  localparam                  TAG_BIT          = 32 - SET_BIT - BLK_OFFSET_BIT;
-  localparam                  WAY_BIT          = `CLOG2(NUM_WAYS);
    
   wire [TAG_BIT - 1:0]        tag              = addr[31:32 - TAG_BIT];
   wire [SET_BIT - 1:0]        set_index        = addr[31 - TAG_BIT:32 - TAG_BIT - SET_BIT];
@@ -74,7 +69,6 @@ module Cache #(parameter LINE_SIZE = 16,
   integer victim;
   reg flag;
 
-  wire v = valid_bits[set_index][victim];
   always @(*) begin
     victim = 0;
     flag = 0;
@@ -110,11 +104,12 @@ module Cache #(parameter LINE_SIZE = 16,
         lru_counter <= 0;
       end
 
+      state <= 0;
+
       _dout <= 0;
       _is_hit <= 0;
       _is_output_valid <= 0;
 
-      state <= 0;
       dmem_is_input_valid <= 0;
       dmem_addr <= 0;
       dmem_mem_read <= 0;
@@ -124,7 +119,6 @@ module Cache #(parameter LINE_SIZE = 16,
     else begin
       if(state == 0) begin // IDLE
         dmem_is_input_valid <= 0;
-        // _is_output_valid <= 0;
         if(is_input_valid) state <= 1;
       end
       else if(state == 1) begin // COMPARE TAG
@@ -134,17 +128,22 @@ module Cache #(parameter LINE_SIZE = 16,
             _dout <= cache_mem[set_index][hit_way][block_offset * 8 +: 32];
             _is_hit <= 1;
             _is_output_valid <= 1;
+
             lru_bits[set_index][hit_way] <= lru_counter;
             lru_counter <= lru_counter + 1;
+
             state <= 6; // Go back to IDLE state
           end
           else if(hit && mem_write) begin
             _is_hit <= 1;
             _is_output_valid <= 1;
+            
             cache_mem[set_index][hit_way][block_offset * 8 +: 32] <= din;
             dirty_bits[set_index][hit_way] <= 1; 
+            
             lru_bits[set_index][hit_way] <= lru_counter;
             lru_counter <= lru_counter + 1;
+            
             state <= 6; // Go back to IDLE state
           end
           /////////////// MISS ///////////////
@@ -158,6 +157,7 @@ module Cache #(parameter LINE_SIZE = 16,
               dmem_mem_read <= 0;
               dmem_mem_write <= 1;
               dmem_din <= cache_mem[set_index][victim];
+              
               state <= 4;
             end
             else begin
@@ -166,6 +166,7 @@ module Cache #(parameter LINE_SIZE = 16,
               dmem_mem_read <= 1;
               dmem_mem_write <= 0;
               dmem_din <= 0; // No data to write
+              
               state <= 5;
             end
           end
@@ -176,13 +177,14 @@ module Cache #(parameter LINE_SIZE = 16,
       else if(state == 2) begin 
         // Valid + evict + dirty --> memwrite
         dmem_is_input_valid <= 0;
-        if(dmem_mem_ready) begin //TODO
-          state <= 5;
+        if(dmem_mem_ready) begin
           dmem_is_input_valid <= 1;
           dmem_addr <= {tag, set_index, block_offset} >> BLK_OFFSET_BIT;
           dmem_mem_read <= 1;
           dmem_mem_write <= 0;
           dmem_din <= 0; // No data to write
+          
+          state <= 5;
         end 
       end
       else if(state == 3) begin // READ
@@ -192,15 +194,16 @@ module Cache #(parameter LINE_SIZE = 16,
           valid_bits[set_index][victim] <= 1;
           dirty_bits[set_index][victim] <= 0;
           tags[set_index][victim] <= tag;
+          
           _dout <= dmem_dout[block_offset * 8 +: 32];
           _is_output_valid <= 1;
           _is_hit <= 0;
+          
           lru_bits[set_index][victim] <= lru_counter;
           lru_counter <= lru_counter + 1;
+          
           state <= 6; 
-          if(mem_read) begin
-          end
-          else if(mem_write) begin
+          if(mem_write) begin
             cache_mem[set_index][victim][block_offset * 8 +: 32] <= din;
             dirty_bits[set_index][victim] <= 1;
           end
