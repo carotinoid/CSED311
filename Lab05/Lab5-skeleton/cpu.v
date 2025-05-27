@@ -116,15 +116,20 @@ module cpu(input reset,       // positive reset signal
   reg IF_ID_is_bubble;
   // Update IF/ID pipeline registers here
   always @(posedge clk) begin
-    if (IF_is_bubble || reset) begin
+    if (reset) begin
       IF_ID_is_bubble <= 1;
       IF_ID_inst <= 0;
-      IF_ID_PC <= (reset?0:IF_current_pc);
+      IF_ID_PC <= 0;
     end
     else if(cache_wait) begin
       IF_ID_is_bubble <= IF_ID_is_bubble;
       IF_ID_inst <= IF_ID_inst;
       IF_ID_PC <= IF_ID_PC;
+    end
+    else if (IF_is_bubble) begin
+      IF_ID_is_bubble <= 1;
+      IF_ID_inst <= 0;
+      IF_ID_PC <= IF_current_pc;
     end
     else begin
       if(IF_ID_Write) begin
@@ -231,7 +236,7 @@ module cpu(input reset,       // positive reset signal
   // Update ID/EX pipeline registers here
   reg ID_EX_is_bubble;
   always @(posedge clk) begin
-    if (ID_is_bubble || reset) begin
+    if (reset) begin
       ID_EX_alu_src <= 0;
       ID_EX_mem_write <= 0;
       ID_EX_mem_read <= 0;
@@ -243,7 +248,7 @@ module cpu(input reset,       // positive reset signal
       ID_EX_ALU_ctrl_unit_input <= 0;
       ID_EX_rd <= 0;
       ID_EX_branch <= 0;
-      ID_EX_PC <= (reset?0:IF_ID_PC);
+      ID_EX_PC <= 0;
       ID_EX_rs1 <= 0;
       ID_EX_rs2 <= 0;
       ID_EX_JAL <= 0;
@@ -278,6 +283,30 @@ module cpu(input reset,       // positive reset signal
       ID_EX_is_stall <= ID_EX_is_stall; 
       ID_EX_is_bubble <= ID_EX_is_bubble; 
       ID_EX_pc_to_reg <= ID_EX_pc_to_reg; 
+    end
+    else if (ID_is_bubble) begin
+      ID_EX_alu_src <= 0;
+      ID_EX_mem_write <= 0;
+      ID_EX_mem_read <= 0;
+      ID_EX_mem_to_reg <= 0;
+      ID_EX_reg_write <= 0;
+      ID_EX_rs1_data <= 0;
+      ID_EX_rs2_data <= 0;
+      ID_EX_imm <= 0;
+      ID_EX_ALU_ctrl_unit_input <= 0;
+      ID_EX_rd <= 0;
+      ID_EX_branch <= 0;
+      ID_EX_PC <= IF_ID_PC;
+      ID_EX_rs1 <= 0;
+      ID_EX_rs2 <= 0;
+      ID_EX_JAL <= 0;
+      ID_EX_JALR <= 0;
+      ID_EX_is_halted <= 0;
+      ID_EX_ctrl_is_ecall <= 0;
+
+      ID_EX_is_stall <= 0;
+      ID_EX_is_bubble <= 1;
+      ID_EX_pc_to_reg <= 0;
     end
     else begin
       ID_EX_alu_src <= ID_ctrl_alu_src;

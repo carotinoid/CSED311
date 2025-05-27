@@ -2,7 +2,7 @@
 
 module Cache #(parameter LINE_SIZE = 16,
                parameter NUM_SETS = 4, /* Your choice */
-               parameter NUM_WAYS = 2 /* Your choice */) (
+               parameter NUM_WAYS = 4 /* Your choice */) (
     input reset,
     input clk,
 
