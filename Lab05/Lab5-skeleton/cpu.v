@@ -482,16 +482,17 @@ module cpu(input reset,       // positive reset signal
   
   reg [31:0] access_cnt;
   reg [31:0] hit_cnt;
+  
   always @(posedge clk) begin
     if(reset) begin
       access_cnt <= 0;
       hit_cnt <= 0;
     end
     else begin
-      if((EX_MEM_mem_read || EX_MEM_mem_write) && is_ready) begin
+      if((EX_MEM_mem_read || EX_MEM_mem_write) && cache_is_output_valid) begin
         access_cnt <= access_cnt + 1;
       end
-      else access_cnt <= access_cnt + 1;
+
       if((EX_MEM_mem_read || EX_MEM_mem_write) && cache_is_output_valid && cache_is_hit) begin
         hit_cnt <= hit_cnt + 1;
       end

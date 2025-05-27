@@ -30,7 +30,6 @@ module Cache #(parameter LINE_SIZE = 16,
   assign                      is_hit           = _is_hit;
   assign                      dout             = _dout;
 
-  localparam                  LINE_BIT         = `CLOG2(LINE_SIZE);
   localparam                  SET_BIT          = `CLOG2(NUM_SETS);
   localparam                  BLK_OFFSET_BIT   = `CLOG2(LINE_SIZE);
   localparam                  TAG_BIT          = 32 - SET_BIT - BLK_OFFSET_BIT;
@@ -46,11 +45,6 @@ module Cache #(parameter LINE_SIZE = 16,
   reg                         dirty_bits       [0:NUM_SETS-1][0:NUM_WAYS-1];
   integer                     lru_bits         [0:NUM_SETS-1][0:NUM_WAYS-1];
   integer                     lru_counter; 
-
-  wire [LINE_SIZE * 8 - 1:0] cache_log1 = cache_mem[0][0];
-  wire [LINE_SIZE * 8 - 1:0] cache_log2 = cache_mem[0][1];
-  wire [LINE_SIZE * 8 - 1:0] cache_log3 = cache_mem[1][0];
-  wire [LINE_SIZE * 8 - 1:0] cache_log4 = cache_mem[1][1];
 
   integer i, j, k;
 
@@ -80,6 +74,7 @@ module Cache #(parameter LINE_SIZE = 16,
   integer victim;
   reg flag;
 
+  wire v = valid_bits[set_index][victim];
   always @(*) begin
     victim = 0;
     flag = 0;
@@ -159,7 +154,7 @@ module Cache #(parameter LINE_SIZE = 16,
 
             if(valid_bits[set_index][victim] && dirty_bits[set_index][victim]) begin
               dmem_is_input_valid <= 1;
-              dmem_addr <= {tags[set_index][victim], set_index, block_offset} >> LINE_BIT;
+              dmem_addr <= {tags[set_index][victim], set_index, block_offset} >> BLK_OFFSET_BIT;
               dmem_mem_read <= 0;
               dmem_mem_write <= 1;
               dmem_din <= cache_mem[set_index][victim];
@@ -167,7 +162,7 @@ module Cache #(parameter LINE_SIZE = 16,
             end
             else begin
               dmem_is_input_valid <= 1;
-              dmem_addr <= {tag, set_index, block_offset} >> LINE_BIT;
+              dmem_addr <= {tag, set_index, block_offset} >> BLK_OFFSET_BIT;
               dmem_mem_read <= 1;
               dmem_mem_write <= 0;
               dmem_din <= 0; // No data to write
@@ -184,7 +179,7 @@ module Cache #(parameter LINE_SIZE = 16,
         if(dmem_mem_ready) begin //TODO
           state <= 5;
           dmem_is_input_valid <= 1;
-          dmem_addr <= {tag, set_index, block_offset} >> LINE_BIT;
+          dmem_addr <= {tag, set_index, block_offset} >> BLK_OFFSET_BIT;
           dmem_mem_read <= 1;
           dmem_mem_write <= 0;
           dmem_din <= 0; // No data to write
