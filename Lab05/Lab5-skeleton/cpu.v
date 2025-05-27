@@ -480,8 +480,8 @@ module cpu(input reset,       // positive reset signal
 
   wire cache_wait = ((EX_MEM_mem_read || EX_MEM_mem_write) && (!is_ready || !cache_is_output_valid));
   
-  reg [31:0] access_cnt;
-  reg [31:0] hit_cnt;
+  integer access_cnt;
+  integer hit_cnt;
   
   always @(posedge clk) begin
     if(reset) begin
@@ -498,6 +498,8 @@ module cpu(input reset,       // positive reset signal
       end
     end
   end
+
+  
 
   reg [4:0] MEM_WB_rd;
   reg MEM_WB_is_halted;
@@ -542,6 +544,12 @@ module cpu(input reset,       // positive reset signal
 
       MEM_WB_pc_to_reg <= EX_MEM_pc_to_reg;
       MEM_WB_PC <= EX_MEM_PC;
+    end
+
+    if(!reset && EX_MEM_is_halted) begin
+      $display("Cache Access Count: %d", access_cnt);
+      $display("Cache Hit Count: %d", hit_cnt);
+      $display("Cache Hit Rate: %f", hit_cnt * 1.0 / access_cnt);
     end
   end
 

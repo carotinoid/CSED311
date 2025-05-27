@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+i=0
+maxi=4
+while true; do
+    ./convert-old $i > /dev/null || break
+    make &> tmp
+    echo "Test $i"
+    echo $(cat tmp | grep "TOTAL CYCLE")
+    echo $(cat tmp | grep "Correct output")
+    echo $(cat tmp | grep "Cache Access Count")
+    echo $(cat tmp | grep "Cache Hit Count")
+    echo $(cat tmp | grep "Cache Hit Rate")
+    i=$((i+1))
+    if [ $i -gt $maxi ]; then
+        break
+    fi
+done
+
+rm tmp
+./convert 3 > /dev/null
